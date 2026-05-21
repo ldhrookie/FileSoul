@@ -1,34 +1,26 @@
 #include <stdio.h>
-#include "report.h"
+#include "file_node.h"
 #include "personality.h"
+#include "report.h"
 
-void writeReport(FileNode* head, const char* filename) {
-    FILE* fp;
-    FileNode* current = head;
+int main(void) {
+    FileNode* head = NULL;
 
-    fp = fopen(filename, "w");
+    appendFileNode(&head, createFileNode("homework.c", "c", 3200));
+    appendFileNode(&head, createFileNode("old_photo.png", "png", 2480000));
+    appendFileNode(&head, createFileNode("mysterious.tmp", "tmp", 800));
+    appendFileNode(&head, createFileNode("final_report.docx", "docx", 145000));
+    appendFileNode(&head, createFileNode("game.exe", "exe", 7300000));
 
-    if (fp == NULL) {
-        printf("report.txt 파일을 생성할 수 없습니다.\n");
-        return;
-    }
+    assignPersonalities(head);
 
-    fprintf(fp, "=====================================\n");
-    fprintf(fp, "           FileSoul Report\n");
-    fprintf(fp, "      파일들의 작은 자기소개서\n");
-    fprintf(fp, "=====================================\n\n");
+    printFileList(head);
 
-    while (current != NULL) {
-        fprintf(fp, "[파일명] %s\n", current->name);
-        fprintf(fp, "[확장자] %s\n", current->extension);
-        fprintf(fp, "[크기] %lld bytes\n", current->size);
-        fprintf(fp, "[종류] %s\n", getFileTypeName(current->type));
-        fprintf(fp, "[성격] %s\n", getPersonalityName(current->personality));
-        fprintf(fp, "[대사] %s\n", current->dialogue);
-        fprintf(fp, "\n-------------------------------------\n\n");
+    writeReport(head, "report.txt");
 
-        current = current->next;
-    }
+    freeFileList(head);
 
-    fclose(fp);
+    printf("report.txt 파일이 생성되었습니다.\n");
+
+    return 0;
 }
