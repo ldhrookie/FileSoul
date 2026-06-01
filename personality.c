@@ -46,26 +46,30 @@ FileType getFileType(const char* extension) {
     }
 
     if (extensionEquals(extension, "png") || extensionEquals(extension, "jpg") ||
-        extensionEquals(extension, "jpeg") || extensionEquals(extension, "gif")) {
+        extensionEquals(extension, "jpeg") || extensionEquals(extension, "gif") ||
+        extensionEquals(extension, "bmp")) {
         return TYPE_IMAGE;
     }
 
     if (extensionEquals(extension, "c") || extensionEquals(extension, "h") ||
-        extensionEquals(extension, "py") || extensionEquals(extension, "java")) {
+        extensionEquals(extension, "cpp") || extensionEquals(extension, "py") ||
+        extensionEquals(extension, "java") || extensionEquals(extension, "js")) {
         return TYPE_CODE;
     }
 
     if (extensionEquals(extension, "docx") || extensionEquals(extension, "pdf") ||
-        extensionEquals(extension, "pptx")) {
+        extensionEquals(extension, "pptx") || extensionEquals(extension, "hwp")) {
         return TYPE_DOCUMENT;
     }
 
-    if (extensionEquals(extension, "exe")) {
+    if (extensionEquals(extension, "exe") || extensionEquals(extension, "dll") ||
+        extensionEquals(extension, "bat") || extensionEquals(extension, "cmd")) {
         return TYPE_EXECUTABLE;
     }
 
     if (extensionEquals(extension, "zip") || extensionEquals(extension, "rar") ||
-        extensionEquals(extension, "7z")) {
+        extensionEquals(extension, "7z") || extensionEquals(extension, "tar") ||
+        extensionEquals(extension, "gz")) {
         return TYPE_ARCHIVE;
     }
 
@@ -170,28 +174,34 @@ void generateDialogue(FileSoul* file) {
     switch (file->personality) {
     case PERSONALITY_DILIGENT:
         snprintf(file->dialogue, sizeof(file->dialogue),
-                 "나는 아직 쓸모가 있어요. 열어보기 전에 함부로 정리하지 말아 주세요.");
+                 "%.80s: useful %.40s. Check before real deletion.",
+                 file->name, getFileTypeName(file->type));
         break;
     case PERSONALITY_LAZY:
         snprintf(file->dialogue, sizeof(file->dialogue),
-                 "나는 조용히 쉬고 있었어요. 정말 필요한 파일인지 한 번만 확인해 주세요.");
+                 "%.80s: quiet file. Mark candidate first if cleanup is needed.",
+                 file->name);
         break;
     case PERSONALITY_HEAVY:
         snprintf(file->dialogue, sizeof(file->dialogue),
-                 "나는 꽤 무거워요. 보관할 가치가 있는지 살펴봐 주세요.");
+                 "%.80s: heavy file (%lld bytes). Review before keeping or deleting.",
+                 file->name, file->size);
         break;
     case PERSONALITY_OLD:
         snprintf(file->dialogue, sizeof(file->dialogue),
-                 "나는 오래 기다렸어요. 추억인지, 정리할 때가 된 건지 정해주세요.");
+                 "%.80s: old file. Decide if it is memory or clutter.",
+                 file->name);
         break;
     case PERSONALITY_DANGEROUS:
         snprintf(file->dialogue, sizeof(file->dialogue),
-                 "나는 조심해서 다뤄야 해요. 삭제하지는 말고 후보로만 표시해 주세요.");
+                 "%.80s: risky %.40s. Protected checks are required.",
+                 file->name, getFileTypeName(file->type));
         break;
     case PERSONALITY_MYSTERIOUS:
     default:
         snprintf(file->dialogue, sizeof(file->dialogue),
-                 "나는 정체가 애매해요. 내가 왜 여기 있는지 확인해 볼래요?");
+                 "%.80s: mysterious file, mood %.40s. Confirm before cleanup.",
+                 file->name, getFileMoodName(file->mood));
         break;
     }
 }

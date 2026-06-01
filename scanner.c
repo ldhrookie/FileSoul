@@ -30,6 +30,58 @@ void extractExtension(const char* filename, char* extension, int extensionSize) 
     extension[extensionSize - 1] = '\0';
 }
 
+static int equalsIgnoreCase(const char* left, const char* right) {
+    while (left != NULL && right != NULL && *left != '\0' && *right != '\0') {
+        char a = *left;
+        char b = *right;
+        if (a >= 'A' && a <= 'Z') {
+            a = (char)(a - 'A' + 'a');
+        }
+        if (b >= 'A' && b <= 'Z') {
+            b = (char)(b - 'A' + 'a');
+        }
+        if (a != b) {
+            return 0;
+        }
+        ++left;
+        ++right;
+    }
+
+    return left != NULL && right != NULL && *left == '\0' && *right == '\0';
+}
+
+static int endsWithTemporaryMarker(const char* filename) {
+    size_t length;
+
+    if (filename == NULL) {
+        return 1;
+    }
+
+    length = strlen(filename);
+    return length == 0 || filename[0] == '~' || filename[length - 1] == '~';
+}
+
+int shouldSkipFile(const char* filename, const char* extension) {
+    if (filename == NULL || filename[0] == '\0' || endsWithTemporaryMarker(filename)) {
+        return 1;
+    }
+
+    if (equalsIgnoreCase(filename, "filesoul.exe") ||
+        equalsIgnoreCase(filename, "report.txt")) {
+        return 1;
+    }
+
+    if (equalsIgnoreCase(extension, "exe") ||
+        equalsIgnoreCase(extension, "o") ||
+        equalsIgnoreCase(extension, "obj") ||
+        equalsIgnoreCase(extension, "log") ||
+        equalsIgnoreCase(extension, "tmp")) {
+        return 1;
+    }
+
+    return 0;
+}
+
 #ifdef _WIN32
 static time_t fileTimeToTimeT(FILETIME fileTime) {
     ULARGE_INTEGER value;
@@ -111,6 +163,10 @@ int scanDirectory(const char* folderPath, FileNode** head) {
         }
 
         extractExtension(findData.cFileName, extension, sizeof(extension));
+        if (shouldSkipFile(findData.cFileName, extension)) {
+            continue;
+        }
+
         buildFullPath(folderPath, findData.cFileName, fullPath, sizeof(fullPath));
         size = ((long long)findData.nFileSizeHigh << 32) | (long long)findData.nFileSizeLow;
         modifiedTime = fileTimeToTimeT(findData.ftLastWriteTime);

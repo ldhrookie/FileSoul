@@ -4,5 +4,6 @@
 #include "file_node.h"
 
 void showPopupDialogues(FileNode* head);
+void showPopupDialoguesLimited(FileNode* head, int maxFiles);
 
 #endif

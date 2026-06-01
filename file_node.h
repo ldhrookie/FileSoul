@@ -7,6 +7,7 @@
 #define MAX_NAME_LENGTH 256
 #define MAX_EXTENSION_LENGTH 32
 #define MAX_DIALOGUE_LENGTH 256
+#define MAX_DELETE_MESSAGE_LENGTH 256
 
 typedef enum {
     TYPE_TEXT,
@@ -67,6 +68,10 @@ typedef struct {
     int deleteCandidate;
 
     FileExtraInfo extra;
+
+    int deleted;
+    int deleteFailed;
+    char deleteMessage[MAX_DELETE_MESSAGE_LENGTH];
 } FileSoul;
 
 typedef struct FileNode {

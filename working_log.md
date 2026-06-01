@@ -118,3 +118,37 @@
   - `filesoul.exe` was restored after the build.
 - Notes:
   - Real file deletion, GUI, background behavior, and `src/*.c` build conversion remain out of scope.
+
+## 2026-06-01 17:37 - Add guarded deletion roadmap and flow
+
+- Intent:
+  - Add `TASKS.md` as the project roadmap.
+  - Implement P0/P1 items for guarded real deletion, stronger statistics, reports, and dialogue controls.
+- Important commands:
+  - `git fetch origin`
+  - `git checkout -b feat/guarded-delete-and-tasks`
+  - `gcc *.c -o filesoul.exe`
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+  - `".`nn`n5`n" | .\filesoul.exe`
+  - `".`nn`n3`n4`n5`n" | .\filesoul.exe`
+  - `"C:\Users\LG\C_Programing\FileSoul_delete_demo`ny`n2`n6`nDELETE`n" | .\filesoul.exe`
+  - `git restore filesoul.exe`
+- Changes:
+  - Added `TASKS.md`.
+  - Added `delete_actions.c/.h` with protected-file checks, scan-root checks, delete preview, and `remove()`-based guarded deletion.
+  - Added delete result fields to `FileSoul`.
+  - Added batch dialogue choices and dialogue file limit support.
+  - Strengthened scanner filters for build artifacts and temporary files.
+  - Added extension statistics and human-readable size formatting.
+  - Strengthened report output with scan summary, deletion results, and extension statistics.
+  - Updated README, AGENTS, and docs for the guarded deletion policy.
+- Verification:
+  - Basic build succeeded.
+  - `-Wall -Wextra` build succeeded.
+  - Basic execution succeeded without enabling deletion.
+  - Delete candidate flow executed without real deletion when deletion was disabled.
+  - Guarded deletion was tested only against `C:\Users\LG\C_Programing\FileSoul_delete_demo`; both temporary `.txt` files were deleted after exact `DELETE` confirmation.
+  - `filesoul.exe` was restored after build/test runs.
+- Notes:
+  - The temporary deletion test folder is outside the Git repository and was left empty.
+  - `filesoul.exe` remains tracked but is not included in the commit.

@@ -1,23 +1,14 @@
 # FileSoul - Pyri's Cry
 
-FileSoul is a terminal-based C program that scans a folder, gives files simple personalities and moods, and asks the user how each file should be handled.
-
-The program never deletes files. Choosing delete only marks a file as a delete candidate.
-
-## Environment
-
-- Windows
-- GCC or MinGW GCC
+FileSoul is a terminal-based C program that scans a folder, assigns each file a simple personality and mood, and helps the user decide what to do with each file.
 
 ## Build
-
-Run this from the repository root:
 
 ```sh
 gcc *.c -o filesoul.exe
 ```
 
-The active build uses root-level `.c` and `.h` files. The `src/` folder is still a preparation area and is not part of the active build.
+The active build uses root-level `.c` and `.h` files. The `src/` folder is a preparation area and is not part of the current build.
 
 ## Run
 
@@ -25,37 +16,43 @@ The active build uses root-level `.c` and `.h` files. The `src/` folder is still
 .\filesoul.exe
 ```
 
-The program asks for a folder path. Empty input scans the current folder.
+The program asks for:
+
+- folder path, with empty input meaning `.`
+- whether guarded real deletion should be enabled
+- how many files to discuss
+- per-file or batch choices
 
 ## Current Features
 
-- Scans regular files in one folder on Windows
-- Stores file path, name, extension, size, and modified time
-- Separates `FileSoul` file data from `FileNode` linked list nodes
-- Classifies files by extension
-- Assigns mood, personality, dialogue, and interest score
-- Uses a function pointer for interest score calculation
-- Sorts files by interest score
-- Provides terminal choices:
-  - Open
-  - Keep
-  - Mark as delete candidate
-  - Ignore
-- Prints summary statistics
-- Writes a report to `results/reports/report.txt`
+- Windows folder scanning
+- file path, name, extension, size, and modified time storage
+- `FileSoul` data separated from `FileNode` linked list nodes
+- extension-based file type classification
+- mood, personality, dialogue, and interest score calculation
+- `InterestCalculator` function pointer
+- sorted dialogue flow by interest score
+- choices: open, keep, delete candidate, ignore
+- batch choices: ignore remaining files or mark remaining files as delete candidates
+- delete candidate preview
+- guarded real deletion with exact `DELETE` confirmation
+- protected file checks
+- extension-by-extension statistics
+- report generation at `results/reports/report.txt`
 
-## Main Modules
+## Deletion Safety
 
-- `main.c`: terminal workflow
-- `file_node.c/.h`: `FileSoul`, `FileNode`, linked list helpers
-- `scanner.c/.h`: folder scanning
-- `personality.c/.h`: type, mood, personality, dialogue, interest score
-- `dialogue_view.c/.h`: terminal choice flow
-- `stats.c/.h`: summary statistics
-- `report.c/.h`: report generation
+Real deletion is disabled by default. It only runs when:
 
-## Safety Notes
+1. the user enables real deletion at startup,
+2. files are marked as delete candidates,
+3. the delete preview is shown,
+4. the user types `DELETE` exactly,
+5. the file passes protection checks,
+6. the file is inside the scanned folder.
 
-- Real file deletion is not implemented.
-- Delete choices only set the delete candidate flag.
-- `filesoul.exe` is currently tracked in Git, but routine build changes to it should not be committed.
+Protected files include executables, scripts, repository files, source files, reports, directories, paths containing `..`, and files outside the scan root.
+
+## Reports
+
+The report includes scan summary, delete results, extension statistics, and per-file details. If `results/reports/report.txt` cannot be opened, the program attempts to write `report.txt`.

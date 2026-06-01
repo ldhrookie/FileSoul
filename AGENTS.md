@@ -4,7 +4,11 @@ This repository is the GitHub-connected FileSoul project.
 
 ## Basic Rules
 
-- Do not implement real file deletion. Delete actions must only mark files as delete candidates.
+- Real file deletion is allowed only through the explicit guarded deletion flow.
+- Files must first be marked as delete candidates.
+- The program must show a deletion preview and require the user to type `DELETE` before calling `remove()`.
+- Protected files, directories, repository files, build artifacts, and files outside the scanned root must never be deleted.
+- Routine tasks must not remove files from the repository or user workspace except through this guarded program behavior.
 - Preserve teammate code and history first.
 - Do not move root C files or perform large refactors unless explicitly requested.
 - Use the C standard library first; do not add external dependencies without approval.

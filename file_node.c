@@ -31,6 +31,9 @@ static void initFileSoul(FileSoul* file) {
     file->choice = CHOICE_NONE;
     file->deleteCandidate = 0;
     file->interest = 0.0;
+    file->deleted = 0;
+    file->deleteFailed = 0;
+    copyText(file->deleteMessage, MAX_DELETE_MESSAGE_LENGTH, "Not requested");
 }
 
 FileNode* createFileNode(const char* path, const char* name, const char* extension, long long size, time_t modifiedTime) {
@@ -98,6 +101,10 @@ void printFileList(const FileNode* head) {
         printf("성격: %s\n", getPersonalityName(file->personality));
         printf("관심 지수: %.2f\n", file->interest);
         printf("대사: %s\n", file->dialogue);
+        printf("삭제 후보: %s\n", file->deleteCandidate ? "예" : "아니오");
+        if (file->deleted || file->deleteFailed) {
+            printf("삭제 결과: %s\n", file->deleteMessage);
+        }
         printf("-----------------------------\n");
 
         current = current->next;

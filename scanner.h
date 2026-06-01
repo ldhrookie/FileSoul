@@ -5,5 +5,6 @@
 
 int scanDirectory(const char* folderPath, FileNode** head);
 void extractExtension(const char* filename, char* extension, int extensionSize);
+int shouldSkipFile(const char* filename, const char* extension);
 
 #endif

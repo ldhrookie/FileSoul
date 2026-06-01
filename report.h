@@ -3,6 +3,6 @@
 
 #include "file_node.h"
 
-void writeReport(FileNode* head, const char* filename);
+void writeReport(FileNode* head, const char* filename, const char* scanRoot);
 
 #endif

@@ -13,6 +13,9 @@ static UserChoice readChoice(void) {
     printf("[2] 보관\n");
     printf("[3] 삭제 후보 등록\n");
     printf("[4] 무시\n");
+    printf("[5] 남은 파일 모두 무시\n");
+    printf("[6] 남은 파일 모두 삭제 후보 등록\n");
+    printf("[0] 대화 종료\n");
     printf("선택: ");
 
     if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
@@ -31,6 +34,13 @@ static UserChoice readChoice(void) {
     case 3:
         return CHOICE_DELETE_CANDIDATE;
     case 4:
+        return CHOICE_IGNORE;
+    case 5:
+        return (UserChoice)5;
+    case 6:
+        return (UserChoice)6;
+    case 0:
+        return (UserChoice)0;
     default:
         return CHOICE_IGNORE;
     }
@@ -46,11 +56,20 @@ static void applyChoice(FileSoul* file, UserChoice choice) {
 }
 
 void showPopupDialogues(FileNode* head) {
+    showPopupDialoguesLimited(head, countFileNodes(head));
+}
+
+void showPopupDialoguesLimited(FileNode* head, int maxFiles) {
     FileNode* current = head;
+    int shown = 0;
 
     printf("\n===== FileSoul 대화 =====\n\n");
 
-    while (current != NULL) {
+    if (maxFiles <= 0) {
+        maxFiles = 10;
+    }
+
+    while (current != NULL && shown < maxFiles) {
         FileSoul* file = &current->data;
         UserChoice choice;
 
@@ -62,10 +81,43 @@ void showPopupDialogues(FileNode* head) {
         printf("대사: %s\n", file->dialogue);
 
         choice = readChoice();
+        if ((int)choice == 5) {
+            while (current != NULL) {
+                applyChoice(&current->data, CHOICE_IGNORE);
+                current = current->next;
+            }
+            printf("남은 파일을 모두 무시로 처리했습니다.\n");
+            return;
+        }
+
+        if ((int)choice == 6) {
+            while (current != NULL) {
+                applyChoice(&current->data, CHOICE_DELETE_CANDIDATE);
+                current = current->next;
+            }
+            printf("남은 파일을 모두 삭제 후보로 등록했습니다.\n");
+            return;
+        }
+
+        if ((int)choice == 0) {
+            while (current != NULL) {
+                applyChoice(&current->data, CHOICE_IGNORE);
+                current = current->next;
+            }
+            printf("대화를 종료하고 남은 파일을 무시로 처리했습니다.\n");
+            return;
+        }
+
         applyChoice(file, choice);
         printf("기록된 선택: %s\n", getChoiceName(file->choice));
         printf("-----------------------------\n");
 
+        current = current->next;
+        ++shown;
+    }
+
+    while (current != NULL) {
+        applyChoice(&current->data, CHOICE_IGNORE);
         current = current->next;
     }
 }
