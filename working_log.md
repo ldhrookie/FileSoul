@@ -92,3 +92,29 @@
 - Notes:
   - Root `.c/.h` files remain the active build.
   - The copied `src/` files are preparation files and are not compiled yet.
+
+## 2026-06-01 17:08 - Implement core terminal flow
+
+- Intent:
+  - Implement the main terminal workflow from folder scanning to report generation.
+  - Keep the active build on root-level `.c/.h` files and leave `src/` as preparation files.
+- Important commands:
+  - `git fetch origin`
+  - `git checkout -b feat/core-terminal-flow`
+  - `gcc *.c -o filesoul.exe`
+  - `".`n4`n4`n4`n4`n4`n4`n4`n4`n4`n4`n4`n4`n" | .\filesoul.exe`
+  - `git restore filesoul.exe`
+- Changes:
+  - Split `FileSoul` file data from `FileNode` linked list nodes.
+  - Added root `scanner.c/.h` for Windows folder scanning.
+  - Added root `stats.c/.h` for summary statistics.
+  - Updated personality logic with mood, interest score, dialogue, and an `InterestCalculator` function pointer.
+  - Reworked terminal choices so delete only marks a delete candidate.
+  - Connected report generation to `results/reports/report.txt`.
+  - Updated README and docs for the implemented terminal flow.
+- Verification:
+  - `gcc *.c -o filesoul.exe` succeeded.
+  - Piped execution scanned the current folder, handled choices, printed statistics, and wrote a report.
+  - `filesoul.exe` was restored after the build.
+- Notes:
+  - Real file deletion, GUI, background behavior, and `src/*.c` build conversion remain out of scope.

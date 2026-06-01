@@ -1,8 +1,8 @@
-﻿# FileSoul - Pyri's Cry
+# FileSoul - Pyri's Cry
 
-FileSoul is a terminal-based C project that gives files simple personalities and dialogue so a user can decide how to organize them.
+FileSoul is a terminal-based C program that scans a folder, gives files simple personalities and moods, and asks the user how each file should be handled.
 
-The current GitHub version uses root-level C files. The repository also contains `src/` preparation files copied from the user's local development workspace for later refactoring, but those files are not part of the current build yet.
+The program never deletes files. Choosing delete only marks a file as a delete candidate.
 
 ## Environment
 
@@ -11,11 +11,13 @@ The current GitHub version uses root-level C files. The repository also contains
 
 ## Build
 
-Run this from the GitHub-connected repository root:
+Run this from the repository root:
 
 ```sh
 gcc *.c -o filesoul.exe
 ```
+
+The active build uses root-level `.c` and `.h` files. The `src/` folder is still a preparation area and is not part of the active build.
 
 ## Run
 
@@ -23,36 +25,37 @@ gcc *.c -o filesoul.exe
 .\filesoul.exe
 ```
 
-## Current Repository Structure
-
-The current build uses these root-level files:
-
-- `main.c`: creates sample file nodes and controls the current demo flow
-- `file_node.c/.h`: file data and singly linked list management
-- `personality.c/.h`: file type classification, personality assignment, and dialogue generation
-- `dialogue_view.c/.h`: dialogue output
-- `report.c/.h`: report writing function, not yet called by `main.c`
-
-The `src/` folder is a staging area for selected local development modules from `C:\Users\LG\C_Programing\src`. It currently exists to prepare a later cleanup, not to replace the root-level team code.
+The program asks for a folder path. Empty input scans the current folder.
 
 ## Current Features
 
-- `FileNode` singly linked list
-- Extension-based file type classification
-- Size/type-based personality assignment
-- Dialogue generation and output
-- Basic report writer function
+- Scans regular files in one folder on Windows
+- Stores file path, name, extension, size, and modified time
+- Separates `FileSoul` file data from `FileNode` linked list nodes
+- Classifies files by extension
+- Assigns mood, personality, dialogue, and interest score
+- Uses a function pointer for interest score calculation
+- Sorts files by interest score
+- Provides terminal choices:
+  - Open
+  - Keep
+  - Mark as delete candidate
+  - Ignore
+- Prints summary statistics
+- Writes a report to `results/reports/report.txt`
+
+## Main Modules
+
+- `main.c`: terminal workflow
+- `file_node.c/.h`: `FileSoul`, `FileNode`, linked list helpers
+- `scanner.c/.h`: folder scanning
+- `personality.c/.h`: type, mood, personality, dialogue, interest score
+- `dialogue_view.c/.h`: terminal choice flow
+- `stats.c/.h`: summary statistics
+- `report.c/.h`: report generation
 
 ## Safety Notes
 
-- Do not implement real file deletion.
-- Delete-related choices should only mark files as delete candidates.
-- `filesoul.exe` is currently tracked, but it is a build artifact. Routine changes to it should not be committed.
-
-## Future Direction
-
-- Separate file data into `FileSoul` and list nodes into `FileNode`.
-- Add real folder scanning.
-- Add user choices: open, keep, delete candidate, ignore.
-- Write reports to `results/reports/report.txt`.
-- Move toward a modular `src/` build only after the team agrees.
+- Real file deletion is not implemented.
+- Delete choices only set the delete candidate flag.
+- `filesoul.exe` is currently tracked in Git, but routine build changes to it should not be committed.

@@ -1,19 +1,69 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "dialogue_view.h"
 #include "personality.h"
 
+static UserChoice readChoice(void) {
+    char buffer[32];
+    long value;
+    char* end;
+
+    printf("[1] 열기\n");
+    printf("[2] 보관\n");
+    printf("[3] 삭제 후보 등록\n");
+    printf("[4] 무시\n");
+    printf("선택: ");
+
+    if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
+        printf("\n입력이 종료되어 이 파일은 무시로 처리합니다.\n");
+        return CHOICE_IGNORE;
+    }
+
+    value = strtol(buffer, &end, 10);
+    (void)end;
+
+    switch (value) {
+    case 1:
+        return CHOICE_OPEN;
+    case 2:
+        return CHOICE_KEEP;
+    case 3:
+        return CHOICE_DELETE_CANDIDATE;
+    case 4:
+    default:
+        return CHOICE_IGNORE;
+    }
+}
+
+static void applyChoice(FileSoul* file, UserChoice choice) {
+    if (file == NULL) {
+        return;
+    }
+
+    file->choice = choice;
+    file->deleteCandidate = choice == CHOICE_DELETE_CANDIDATE;
+}
+
 void showPopupDialogues(FileNode* head) {
     FileNode* current = head;
 
-    printf("\n===== FileSoul Dialogue =====\n\n");
+    printf("\n===== FileSoul 대화 =====\n\n");
 
     while (current != NULL) {
-        printf("[%s]\n", current->name);
-        printf("Type: %s\n", getFileTypeName(current->type));
-        printf("Personality: %s\n", getPersonalityName(current->personality));
-        printf("Dialogue: %s\n", current->dialogue);
-        printf("Choice TODO: open / keep / delete candidate / ignore\n");
+        FileSoul* file = &current->data;
+        UserChoice choice;
+
+        printf("[%s]\n", file->name);
+        printf("종류: %s\n", getFileTypeName(file->type));
+        printf("기분: %s\n", getFileMoodName(file->mood));
+        printf("성격: %s\n", getPersonalityName(file->personality));
+        printf("관심 지수: %.2f\n", file->interest);
+        printf("대사: %s\n", file->dialogue);
+
+        choice = readChoice();
+        applyChoice(file, choice);
+        printf("기록된 선택: %s\n", getChoiceName(file->choice));
         printf("-----------------------------\n");
 
         current = current->next;
