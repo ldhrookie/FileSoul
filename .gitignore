@@ -1,0 +1,6 @@
+*.o
+*.obj
+*.log
+filesoul.exe
+results/reports/report.txt
+
