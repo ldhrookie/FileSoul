@@ -28,9 +28,9 @@ try {
     }
 
     if (-not $LocalOnly -and -not $env:OPENAI_API_KEY) {
-        Write-Host "OPENAI_API_KEY가 없습니다. LLM 대사를 사용하려면 API 키를 입력하세요."
-        Write-Host "입력한 키는 저장되지 않고 이번 실행에만 사용됩니다."
-        $secureKey = Read-Host "API 키 (빈 입력은 로컬 대사 사용)" -AsSecureString
+        Write-Host "OPENAI_API_KEY is not set."
+        Write-Host "Enter an API key for LLM dialogue. It is used only for this run and is not saved."
+        $secureKey = Read-Host "API key (press Enter to use local dialogue)" -AsSecureString
 
         if ($secureKey.Length -gt 0) {
             $keyPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureKey)
@@ -44,18 +44,33 @@ try {
     }
 
     if (-not $SkipBuild) {
-        $sources = @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter "*.c" |
-            ForEach-Object { $_.FullName })
+        $executablePath = "$PSScriptRoot\filesoul.exe"
+        $runningFileSoul = @(Get-Process -Name "filesoul" -ErrorAction SilentlyContinue |
+            Where-Object { $_.Path -eq $executablePath })
 
-        & gcc -Wall -Wextra @sources -o "$PSScriptRoot\filesoul.exe"
-        if ($LASTEXITCODE -ne 0) {
-            throw "FileSoul 빌드에 실패했습니다."
+        if ($runningFileSoul.Count -gt 0) {
+            Write-Host "FileSoul is already running, so rebuild was skipped."
+            Write-Host "Close the existing FileSoul window before rebuilding."
+        }
+        else {
+            $sources = @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter "*.c" |
+                ForEach-Object { $_.FullName })
+
+            & gcc -Wall -Wextra @sources -o $executablePath
+            if ($LASTEXITCODE -ne 0) {
+                if (Test-Path -LiteralPath $executablePath) {
+                    Write-Warning "Build failed. Running the existing filesoul.exe instead."
+                }
+                else {
+                    throw "FileSoul build failed and no existing executable is available."
+                }
+            }
         }
     }
 
     & "$PSScriptRoot\filesoul.exe"
     if ($LASTEXITCODE -ne 0) {
-        throw "FileSoul 실행이 실패했습니다. 종료 코드: $LASTEXITCODE"
+        throw "FileSoul failed with exit code: $LASTEXITCODE"
     }
 }
 finally {

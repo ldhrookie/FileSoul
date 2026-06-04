@@ -285,3 +285,22 @@
   - Same-personality sample pairs produced different dialogue.
 - Notes:
   - No real deletion was enabled or exercised.
+
+## 2026-06-04 - Make launcher compatible with Windows PowerShell 5.1
+
+- Intent:
+  - Prevent launcher text from becoming mojibake before UTF-8 setup runs.
+  - Avoid linker failure when `filesoul.exe` is already running and locked by Windows.
+- Important commands:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+  - `.\run_filesoul.cmd -LocalOnly -SkipBuild`
+- Changes:
+  - Replaced all launcher messages with ASCII text so Windows PowerShell 5.1 cannot misdecode the script.
+  - Added a running-process check that skips rebuild when the current executable is locked.
+  - Added an existing-executable fallback when compilation fails.
+- Verification:
+  - Confirmed `run_filesoul.ps1` contains zero non-ASCII bytes.
+  - `gcc -Wall -Wextra *.c -o filesoul.exe` succeeded without warnings.
+  - `.\run_filesoul.cmd -LocalOnly -SkipBuild` completed with readable Korean FileSoul output.
+- Notes:
+  - FileSoul application output remains Korean and uses direct UTF-16 Windows console output.
