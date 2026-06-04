@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "stats.h"
+#include "console_io.h"
 
 #define MAX_EXTENSION_STATS 64
 

@@ -188,19 +188,40 @@ static int extractOutputText(const char* response, char* destination, size_t cap
 }
 
 static int buildRequest(const FileSoul* file, const char* model, char* request, size_t capacity) {
+    static const char* styleCues[] = {
+        "짧고 당당하게",
+        "살짝 장난스럽게",
+        "차분하고 진지하게",
+        "은근히 시적인 말투로",
+        "친한 친구처럼",
+        "조금 까칠하지만 밉지 않게",
+        "솔직하고 현실적으로",
+        "호기심을 자극하게"
+    };
     char sizeText[64];
     char prompt[1800];
     size_t length = 0;
+    unsigned int styleIndex = 0;
+    const unsigned char* current = (const unsigned char*)file->name;
 
     formatSize(file->size, sizeText, sizeof(sizeText));
+    while (*current != '\0') {
+        styleIndex = styleIndex * 33U + *current;
+        ++current;
+    }
+    styleIndex %= (unsigned int)(sizeof(styleCues) / sizeof(styleCues[0]));
+
     snprintf(prompt, sizeof(prompt),
              "너는 FileSoul이라는 파일 정리 프로그램 속 파일이다. "
              "사용자에게 직접 말하는 자연스러운 한국어 대사 한 줄만 써라. "
              "설명, 따옴표, 목록, 파일 경로는 쓰지 말고 90자 이내로 말해라. "
              "삭제를 강요하거나 안전 검사를 무시하게 하지 마라. "
+             "같은 성격의 다른 파일도 똑같이 말하지 않도록 파일명과 상태에서 개성을 만들어라. "
+             "이번 파일의 말투 힌트는 '%s'이다. "
              "파일명은 '%s', 종류는 '%s', 성격은 '%s', 현재 기분은 '%s', "
              "크기는 '%s', 정리 관심도는 %.1f/100이다. "
              "파일명과 상태를 재치 있게 활용하고, 특히 성격과 기분이 분명히 느껴지게 말해라.",
+             styleCues[styleIndex],
              file->name,
              getFileTypeName(file->type),
              getPersonalityName(file->personality),

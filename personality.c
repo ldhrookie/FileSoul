@@ -36,6 +36,45 @@ static int daysSince(time_t value) {
     return (int)((now - value) / (60 * 60 * 24));
 }
 
+static unsigned int dialogueSeed(const FileSoul* file) {
+    const unsigned char* current;
+    unsigned int hash = 2166136261U;
+
+    if (file == NULL) {
+        return 0;
+    }
+
+    current = (const unsigned char*)file->name;
+    while (*current != '\0') {
+        hash = (hash ^ *current) * 16777619U;
+        ++current;
+    }
+
+    current = (const unsigned char*)file->extension;
+    while (*current != '\0') {
+        hash = (hash ^ *current) * 16777619U;
+        ++current;
+    }
+
+    hash ^= (unsigned int)file->size;
+    hash ^= (unsigned int)(file->size >> 32);
+    hash ^= (unsigned int)file->modifiedTime;
+    return hash;
+}
+
+static const char* getSizeAttitude(long long size) {
+    if (size >= 50LL * 1024LL * 1024LL) {
+        return "자리 차지는 크지만 존재감도 확실해";
+    }
+    if (size >= 1024LL * 1024LL) {
+        return "조금 묵직하지만 감당 못 할 정도는 아니야";
+    }
+    if (size == 0) {
+        return "몸집은 비어 있어도 사연은 있을지 몰라";
+    }
+    return "자리도 거의 안 차지하는 편이야";
+}
+
 FileType getFileType(const char* extension) {
     if (extension == NULL || extension[0] == '\0') {
         return TYPE_UNKNOWN;
@@ -167,41 +206,131 @@ double calculateBasicInterest(const FileSoul* file) {
 }
 
 void generateDialogue(FileSoul* file) {
+    unsigned int variant;
+    int days;
+
     if (file == NULL) {
         return;
     }
 
+    variant = dialogueSeed(file) % 4U;
+    days = daysSince(file->modifiedTime);
+
     switch (file->personality) {
     case PERSONALITY_DILIGENT:
-        snprintf(file->dialogue, sizeof(file->dialogue),
-                 "%.80s: 나는 아직 쓸모가 많은 %s이야. 지우기 전에 한 번만 더 확인해 줘.",
-                 file->name, getFileTypeName(file->type));
+        if (variant == 0) {
+            snprintf(file->dialogue, sizeof(file->dialogue),
+                     "%.70s: 할 일은 끝까지 해내는 %s이야. 아직 맡길 일이 남았는지 확인해 줘.",
+                     file->name, getFileTypeName(file->type));
+        } else if (variant == 1) {
+            snprintf(file->dialogue, sizeof(file->dialogue),
+                     "%.70s: 수정된 지 %d일 됐어. 기록을 정리해 두는 건 내 전문이지.",
+                     file->name, days);
+        } else if (variant == 2) {
+            snprintf(file->dialogue, sizeof(file->dialogue),
+                     "%.70s: %s답게 차근차근 준비돼 있어. 보관할 가치가 있는지 봐 줘.",
+                     file->name, getFileTypeName(file->type));
+        } else {
+            snprintf(file->dialogue, sizeof(file->dialogue),
+                     "%.70s: 난 성실하게 자리를 지켰어. 마지막 검토 없이 넘기지는 말아 줘.",
+                     file->name);
+        }
         break;
     case PERSONALITY_LAZY:
-        snprintf(file->dialogue, sizeof(file->dialogue),
-                 "%.80s: 난 조용히 쉬고 있었어. 정리가 필요하면 삭제 후보로만 먼저 표시해 줘.",
-                 file->name);
+        if (variant == 0) {
+            snprintf(file->dialogue, sizeof(file->dialogue),
+                     "%.70s: 난 조용히 쉬는 중이야. 급한 일 아니면 조금만 더 누워 있을게.",
+                     file->name);
+        } else if (variant == 1) {
+            snprintf(file->dialogue, sizeof(file->dialogue),
+                     "%.70s: %d일 동안 별일 없었네. 정리할 거면 살살 결정해 줘.",
+                     file->name, days);
+        } else if (variant == 2) {
+            snprintf(file->dialogue, sizeof(file->dialogue),
+                     "%.70s: %s. 굳이 나까지 바쁘게 움직여야 할까?",
+                     file->name, getSizeAttitude(file->size));
+        } else {
+            snprintf(file->dialogue, sizeof(file->dialogue),
+                     "%.70s: 내용은 텍스트지만 오늘은 말수가 적고 싶어. 보관 쪽이 편하긴 해.",
+                     file->name);
+        }
         break;
     case PERSONALITY_HEAVY:
-        snprintf(file->dialogue, sizeof(file->dialogue),
-                 "%.80s: 내가 공간을 꽤 차지하고 있어. 보관할지 정리할지 천천히 봐 줘.",
-                 file->name);
+        if (variant == 0) {
+            snprintf(file->dialogue, sizeof(file->dialogue),
+                     "%.70s: 인정할게, 내가 공간을 꽤 차지해. 대신 쉽게 버릴 무게는 아닐걸.",
+                     file->name);
+        } else if (variant == 1) {
+            snprintf(file->dialogue, sizeof(file->dialogue),
+                     "%.70s: %s. 내 크기만 보고 성급히 판단하지는 마.",
+                     file->name, getSizeAttitude(file->size));
+        } else if (variant == 2) {
+            snprintf(file->dialogue, sizeof(file->dialogue),
+                     "%.70s: 무거운 건 죄가 아니잖아. 내가 담고 있는 가치부터 확인해 줘.",
+                     file->name);
+        } else {
+            snprintf(file->dialogue, sizeof(file->dialogue),
+                     "%.70s: 정리 관심도 %.0f점이라니, 오늘 대화의 중심은 나인가 보네.",
+                     file->name, file->interest);
+        }
         break;
     case PERSONALITY_OLD:
-        snprintf(file->dialogue, sizeof(file->dialogue),
-                 "%.80s: 오래 기다렸어. 추억인지 짐인지 네가 판단해 줘.",
-                 file->name);
+        if (variant == 0) {
+            snprintf(file->dialogue, sizeof(file->dialogue),
+                     "%.70s: %d일을 기다렸어. 오래됐다는 이유만으로 내 이야기를 끝내진 말아 줘.",
+                     file->name, days);
+        } else if (variant == 1) {
+            snprintf(file->dialogue, sizeof(file->dialogue),
+                     "%.70s: 한동안 날 찾지 않았지. 추억인지 짐인지 이번엔 정해 줘.",
+                     file->name);
+        } else if (variant == 2) {
+            snprintf(file->dialogue, sizeof(file->dialogue),
+                     "%.70s: 시간은 많이 흘렀지만 나는 그대로야. 한 번쯤 열어 봐도 좋겠어.",
+                     file->name);
+        } else {
+            snprintf(file->dialogue, sizeof(file->dialogue),
+                     "%.70s: 오래된 %s에게도 마지막으로 할 말은 있는 법이야.",
+                     file->name, getFileTypeName(file->type));
+        }
         break;
     case PERSONALITY_DANGEROUS:
-        snprintf(file->dialogue, sizeof(file->dialogue),
-                 "%.80s: 나는 조심해서 다뤄야 하는 %s이야. 보호 검사를 꼭 거쳐야 해.",
-                 file->name, getFileTypeName(file->type));
+        if (variant == 0) {
+            snprintf(file->dialogue, sizeof(file->dialogue),
+                     "%.70s: 경계하는 건 이해해. 그래도 내 정체를 확인한 다음 결정해 줘.",
+                     file->name);
+        } else if (variant == 1) {
+            snprintf(file->dialogue, sizeof(file->dialogue),
+                     "%.70s: 나는 %s이라 조심해서 다뤄야 해. 보호 검사는 꼭 거쳐.",
+                     file->name, getFileTypeName(file->type));
+        } else if (variant == 2) {
+            snprintf(file->dialogue, sizeof(file->dialogue),
+                     "%.70s: 확장자 .%s만 보고 수상하다고 단정한 건 아니지? 먼저 확인해 봐.",
+                     file->name, file->extension[0] != '\0' ? file->extension : "(없음)");
+        } else {
+            snprintf(file->dialogue, sizeof(file->dialogue),
+                     "%.70s: 정리 관심도 %.0f점이군. 날 건드릴 땐 안전 절차부터 챙겨.",
+                     file->name, file->interest);
+        }
         break;
     case PERSONALITY_MYSTERIOUS:
     default:
-        snprintf(file->dialogue, sizeof(file->dialogue),
-                 "%.80s: 정체가 애매한 파일이야. 정리하기 전에 한 번 더 확인해 줘.",
-                 file->name);
+        if (variant == 0) {
+            snprintf(file->dialogue, sizeof(file->dialogue),
+                     "%.70s: 내 정체가 바로 보이지 않는다고? 그게 내 매력일 수도 있지.",
+                     file->name);
+        } else if (variant == 1) {
+            snprintf(file->dialogue, sizeof(file->dialogue),
+                     "%.70s: 나는 %s인데도 조금 수수께끼 같아. 열어 보면 답이 나올까?",
+                     file->name, getFileTypeName(file->type));
+        } else if (variant == 2) {
+            snprintf(file->dialogue, sizeof(file->dialogue),
+                     "%.70s: %s. 작고 조용한 비밀일지도 몰라.",
+                     file->name, getSizeAttitude(file->size));
+        } else {
+            snprintf(file->dialogue, sizeof(file->dialogue),
+                     "%.70s: 이름만으로 나를 다 안다고 생각하지 마. 한 번 더 살펴봐 줘.",
+                     file->name);
+        }
         break;
     }
 }

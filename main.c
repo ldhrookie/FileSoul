@@ -8,6 +8,7 @@
 #endif
 
 #include "delete_actions.h"
+#include "console_io.h"
 #include "dialogue_view.h"
 #include "file_node.h"
 #include "personality.h"

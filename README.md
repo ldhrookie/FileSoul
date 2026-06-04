@@ -48,6 +48,8 @@ LLM 없이 실행하려면 `.\run_filesoul.cmd -LocalOnly`를 사용하세요.
 - Common Controls v6 매니페스트를 통한 사용자 정의 팝업 버튼 활성화
 - `OPENAI_API_KEY`가 있을 때 파일 성격, 기분, 상태를 반영하는 LLM 대사 생성
 - LLM 연결 실패 또는 API 키 미설정 시 성격 기반 로컬 대사 자동 사용
+- 같은 성격이어도 파일명, 확장자, 크기, 수정 시각에 따라 달라지는 로컬 대사
+- Windows 콘솔에 UTF-16으로 직접 출력하여 PowerShell 코드페이지와 무관한 한글 표시
 - 터미널 선택지: 열기, 보관, 삭제 후보 등록, 무시
 - 일괄 선택지: 남은 파일 모두 무시, 남은 파일 모두 삭제 후보 등록
 - 삭제 후보 미리보기
@@ -80,11 +82,11 @@ LLM 없이 실행하려면 `.\run_filesoul.cmd -LocalOnly`를 사용하세요.
 
 ## 한글 출력
 
-소스 문자열은 UTF-8 한글 기준입니다. 프로그램 시작 시 Windows 콘솔 코드페이지를 UTF-8로 설정합니다.
-PowerShell에서 여전히 한글이 깨지면 실행 전에 다음 명령을 한 번 입력하세요.
+소스 문자열은 UTF-8 한글 기준입니다. Windows 콘솔에서는 프로그램이 UTF-16으로 직접 출력하므로
+PowerShell 코드페이지가 CP949여도 한글이 정상 표시됩니다.
 
 ```powershell
-chcp 65001
+.\filesoul.exe
 ```
 
 ## LLM 대사

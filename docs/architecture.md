@@ -28,6 +28,7 @@
 ## Modules
 
 - `scanner.c/.h`: Windows folder scan and scan filters
+- `console_io.c/.h`: UTF-8 formatting and direct UTF-16 Windows console output
 - `personality.c/.h`: type, mood, personality, dialogue, interest score
 - `llm_dialogue.c/.h`: OpenAI Responses API dialogue generation with local-dialogue fallback
 - `dialogue_view.c/.h`: floating message choices, terminal fallback, and batch actions
@@ -47,6 +48,7 @@ Blocked deletion attempts store the reason in `FileSoul.deleteMessage` so the te
 
 On Windows, the dialogue view uses `TaskDialogIndirect` custom buttons so the file speaks and the user chooses an action in the same floating message. If the API key is configured, the LLM receives only file metadata and produces a short personality-driven Korean line. Full paths and file contents are not sent.
 The external `filesoul.exe.manifest` activates Common Controls v6 for the custom task dialog.
+Local fallback dialogue uses stable file metadata to choose distinct lines within each personality instead of repeating one fixed sentence.
 
 ## Build Structure
 

@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "file_node.h"
+#include "console_io.h"
 #include "personality.h"
 
 static void copyText(char* destination, int destinationSize, const char* source) {

@@ -7,6 +7,7 @@
 #endif
 
 #include "delete_actions.h"
+#include "console_io.h"
 #include "stats.h"
 
 static int equalsIgnoreCase(const char* left, const char* right) {

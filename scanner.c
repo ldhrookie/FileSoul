@@ -7,6 +7,7 @@
 #endif
 
 #include "scanner.h"
+#include "console_io.h"
 
 void extractExtension(const char* filename, char* extension, int extensionSize) {
     const char* dot;

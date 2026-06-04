@@ -7,6 +7,7 @@
 #endif
 
 #include "personality.h"
+#include "console_io.h"
 #include "report.h"
 #include "stats.h"
 

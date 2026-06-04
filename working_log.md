@@ -264,3 +264,24 @@
   - The no-key run showed the LLM-disabled startup guidance and used local dialogue.
 - Notes:
   - The original shell used code page 949 with ASCII output encoding and had no `OPENAI_API_KEY`.
+
+## 2026-06-04 - Diversify dialogue and make console Korean codepage-independent
+
+- Intent:
+  - Stop files with the same personality from repeating one fixed local line.
+  - Fix Korean terminal output even when PowerShell remains on CP949.
+- Important commands:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+  - Direct no-key sample run with `FILESOUL_TERMINAL_DIALOGUE=1`
+- Changes:
+  - Added four stable local-dialogue variants per personality selected from file metadata.
+  - Added file age, size, extension, type, and interest details to local dialogue.
+  - Added file-specific style hints to the LLM prompt to reduce repeated dialogue.
+  - Added `console_io.c/.h`; Windows console output now converts UTF-8 text to UTF-16 and writes it with `WriteConsoleW`.
+  - Kept redirected output and report files as UTF-8.
+- Verification:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe` succeeded without warnings.
+  - Direct executable output displayed readable Korean.
+  - Same-personality sample pairs produced different dialogue.
+- Notes:
+  - No real deletion was enabled or exercised.

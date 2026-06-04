@@ -7,6 +7,7 @@
 #endif
 
 #include "dialogue_view.h"
+#include "console_io.h"
 #include "llm_dialogue.h"
 #include "personality.h"
 #include "stats.h"
