@@ -174,34 +174,34 @@ void generateDialogue(FileSoul* file) {
     switch (file->personality) {
     case PERSONALITY_DILIGENT:
         snprintf(file->dialogue, sizeof(file->dialogue),
-                 "%.80s: useful %.40s. Check before real deletion.",
+                 "%.80s: 나는 아직 쓸모가 많은 %s이야. 지우기 전에 한 번만 더 확인해 줘.",
                  file->name, getFileTypeName(file->type));
         break;
     case PERSONALITY_LAZY:
         snprintf(file->dialogue, sizeof(file->dialogue),
-                 "%.80s: quiet file. Mark candidate first if cleanup is needed.",
+                 "%.80s: 난 조용히 쉬고 있었어. 정리가 필요하면 삭제 후보로만 먼저 표시해 줘.",
                  file->name);
         break;
     case PERSONALITY_HEAVY:
         snprintf(file->dialogue, sizeof(file->dialogue),
-                 "%.80s: heavy file (%lld bytes). Review before keeping or deleting.",
-                 file->name, file->size);
+                 "%.80s: 내가 공간을 꽤 차지하고 있어. 보관할지 정리할지 천천히 봐 줘.",
+                 file->name);
         break;
     case PERSONALITY_OLD:
         snprintf(file->dialogue, sizeof(file->dialogue),
-                 "%.80s: old file. Decide if it is memory or clutter.",
+                 "%.80s: 오래 기다렸어. 추억인지 짐인지 네가 판단해 줘.",
                  file->name);
         break;
     case PERSONALITY_DANGEROUS:
         snprintf(file->dialogue, sizeof(file->dialogue),
-                 "%.80s: risky %.40s. Protected checks are required.",
+                 "%.80s: 나는 조심해서 다뤄야 하는 %s이야. 보호 검사를 꼭 거쳐야 해.",
                  file->name, getFileTypeName(file->type));
         break;
     case PERSONALITY_MYSTERIOUS:
     default:
         snprintf(file->dialogue, sizeof(file->dialogue),
-                 "%.80s: mysterious file, mood %.40s. Confirm before cleanup.",
-                 file->name, getFileMoodName(file->mood));
+                 "%.80s: 정체가 애매한 파일이야. 정리하기 전에 한 번 더 확인해 줘.",
+                 file->name);
         break;
     }
 }

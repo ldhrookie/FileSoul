@@ -33,7 +33,7 @@ static void initFileSoul(FileSoul* file) {
     file->interest = 0.0;
     file->deleted = 0;
     file->deleteFailed = 0;
-    copyText(file->deleteMessage, MAX_DELETE_MESSAGE_LENGTH, "Not requested");
+    copyText(file->deleteMessage, MAX_DELETE_MESSAGE_LENGTH, "삭제 요청 없음");
 }
 
 FileNode* createFileNode(const char* path, const char* name, const char* extension, long long size, time_t modifiedTime) {
@@ -50,7 +50,7 @@ FileNode* createFileNode(const char* path, const char* name, const char* extensi
     copyText(newNode->data.extension, MAX_EXTENSION_LENGTH, extension);
     newNode->data.size = size;
     newNode->data.modifiedTime = modifiedTime;
-    copyText(newNode->data.dialogue, MAX_DIALOGUE_LENGTH, "아직 할 말이 정해지지 않았어요.");
+    copyText(newNode->data.dialogue, MAX_DIALOGUE_LENGTH, "아직 내 말이 정해지지 않았어요.");
     newNode->next = NULL;
 
     return newNode;
@@ -99,7 +99,7 @@ void printFileList(const FileNode* head) {
         printf("종류: %s\n", getFileTypeName(file->type));
         printf("기분: %s\n", getFileMoodName(file->mood));
         printf("성격: %s\n", getPersonalityName(file->personality));
-        printf("관심 지수: %.2f\n", file->interest);
+        printf("관심도: %.2f\n", file->interest);
         printf("대사: %s\n", file->dialogue);
         printf("삭제 후보: %s\n", file->deleteCandidate ? "예" : "아니오");
         if (file->deleted || file->deleteFailed) {
@@ -169,6 +169,6 @@ const char* getChoiceName(UserChoice choice) {
         return "무시";
     case CHOICE_NONE:
     default:
-        return "선택 안 함";
+        return "선택 없음";
     }
 }

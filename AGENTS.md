@@ -41,11 +41,10 @@ This repository is the GitHub-connected FileSoul project.
 
 ## Build Artifact Rules
 
-- `filesoul.exe` is currently tracked in Git, but it is a build artifact.
-- Routine Codex tasks should not commit modified `filesoul.exe` unless the user explicitly requests it.
-- After running `gcc *.c -o filesoul.exe`, if `filesoul.exe` becomes modified, restore it with `git restore filesoul.exe` before final status reporting.
-- Do not run `git rm --cached filesoul.exe` unless the user explicitly approves it or the team decides to stop tracking the executable.
-- Keep `filesoul.exe` in `.gitignore` so future untracked build outputs are ignored after the tracked artifact policy is resolved.
+- `filesoul.exe` is a build artifact and is no longer tracked in Git.
+- Do not commit build outputs, object files, generated reports, or temporary delete-demo files.
+- Keep `filesoul.exe`, `*.exe`, `*.o`, `*.obj`, `*.log`, report outputs, and `tests/delete_demo/` in `.gitignore`.
+- After running `gcc *.c -o filesoul.exe`, `filesoul.exe` should remain ignored and absent from `git status`.
 
 ## Build
 
@@ -54,3 +53,5 @@ The current GitHub code builds from root-level `.c` and `.h` files.
 ```sh
 gcc *.c -o filesoul.exe
 ```
+
+The `src/` folder remains a preparation area and is not part of the current build.

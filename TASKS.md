@@ -36,6 +36,8 @@ Active files:
 - `personality.h`
 - `dialogue_view.c`
 - `dialogue_view.h`
+- `delete_actions.c`
+- `delete_actions.h`
 - `stats.c`
 - `stats.h`
 - `report.c`
@@ -48,6 +50,7 @@ gcc *.c -o filesoul.exe
 ```
 
 The `src/` folder is a preparation area for future modular cleanup. Current implementation work stays in root-level files.
+Build outputs such as `filesoul.exe`, report files, object files, and temporary delete-demo files are ignored and should not be committed.
 
 ## 3. Current Completed State
 
@@ -66,9 +69,6 @@ Implemented:
 - Basic statistics output
 - `results/reports/report.txt` generation
 - Root `.c/.h` build
-
-Still needed:
-
 - Guarded real deletion flow
 - Protected file checks
 - Delete result recording
@@ -80,6 +80,16 @@ Still needed:
 - Size formatting
 - Modified time formatting
 - Demo stability
+- `filesoul.exe` removed from Git tracking
+- Sorted extension statistics
+- Detailed protected-delete block reasons in terminal/report output
+- Shorter demo-friendly dialogue output
+
+Still needed:
+
+- Optional recursive scanning
+- Optional configuration file
+- Future `src/` build conversion
 
 ## 4. Real Deletion Policy
 
@@ -146,20 +156,20 @@ These must never be deleted, even if marked as candidates:
 
 ## 7. P1 Important Work
 
-- Extension-by-extension statistics
-- Stronger report content
-- Batch dialogue choices
-- Dialogue file count limit
-- Stronger scan filters
-- README/docs updates
+- Extension-by-extension statistics: done, sorted by size/count/name
+- Stronger report content: done
+- Batch dialogue choices: done
+- Dialogue file count limit: done
+- Stronger scan filters: done
+- README/docs updates: done
 
 ## 8. P2 If Time Allows
 
-- Human-readable size formatting
-- Modified time formatting
+- Human-readable size formatting: done
+- Modified time formatting: done
 - More precise interest scoring
-- EOF input stability
-- `-Wall -Wextra` warning cleanup
+- EOF input stability: done for dialogue input
+- `-Wall -Wextra` warning cleanup: current root build passes
 
 ## 9. P3 Later Work
 
@@ -189,5 +199,5 @@ The current stage is complete when:
 - Extension statistics are printed
 - A report is generated
 - README, AGENTS, docs, working_log, and TASKS match the implementation
-- `filesoul.exe` changes are not committed
+- `filesoul.exe` is ignored and no longer tracked
 - The work is merged into `main` and pushed to `origin/main`

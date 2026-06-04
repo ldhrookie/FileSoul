@@ -1,6 +1,10 @@
+filesoul.exe
+*.exe
 *.o
 *.obj
 *.log
-filesoul.exe
+report.txt
 results/reports/report.txt
+results/reports/
+tests/delete_demo/
 

@@ -152,3 +152,67 @@
 - Notes:
   - The temporary deletion test folder is outside the Git repository and was left empty.
   - `filesoul.exe` remains tracked but is not included in the commit.
+
+## 2026-06-01 18:10 - Final demo polish and repository cleanup
+
+- Intent:
+  - Stabilize the final terminal demo without changing the core project shape.
+  - Stop tracking the generated executable and keep build/runtime outputs ignored.
+- Important commands:
+  - `git fetch origin`
+  - `git checkout -b chore/final-demo-polish`
+  - `git rm --cached filesoul.exe`
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+  - `Remove-Item -LiteralPath C:\Users\LG\C_Programing\FileSoul_delete_demo -Recurse`
+- Changes:
+  - Removed `filesoul.exe` from Git tracking while leaving the local build output on disk.
+  - Expanded `.gitignore` for executables, object files, logs, reports, and `tests/delete_demo/`.
+  - Sorted extension statistics by total size, then file count, then extension name.
+  - Added detailed deletion block reasons and stored them in `FileSoul.deleteMessage`.
+  - Shortened dialogue output so large-folder demos stay readable.
+  - Updated README, TASKS, AGENTS, architecture notes, and implementation plan.
+- Verification:
+  - Warning build succeeded during implementation.
+  - Full final build/run verification is recorded in the final task report.
+- Notes:
+  - Active build remains root-level `.c/.h`.
+  - `src/` remains a preparation folder.
+  - Real deletion tests must stay limited to disposable temporary folders.
+
+## 2026-06-04 15:00 - Add Windows floating dialogue popup
+
+- Intent:
+  - Show each FileSoul dialogue in a real Windows popup while keeping the existing terminal action choices.
+- Important commands:
+  - `gcc *.c -o filesoul_check.exe`
+- Changes:
+  - Added a `_WIN32` guarded `windows.h` path in `dialogue_view.c`.
+  - Added a `MessageBoxA`-based floating dialogue popup before the terminal choice prompt.
+  - Loaded `user32.dll` at runtime so the existing `gcc *.c -o filesoul.exe` style build does not need an extra `-luser32` flag.
+  - Updated README feature notes.
+- Verification:
+  - `gcc *.c -o filesoul_check.exe` succeeded.
+  - `gcc -Wall -Wextra *.c -o filesoul_check.exe` succeeded without warnings.
+- Notes:
+  - The popup displays the file's dialogue and summary.
+  - The action choice still happens in the terminal because `MessageBoxA` does not support the current six custom choices directly.
+
+## 2026-06-04 15:25 - Restore Korean UTF-8 output
+
+- Intent:
+  - Replace broken Korean strings with readable UTF-8 Korean.
+  - Keep Korean output instead of switching the project to English.
+- Important commands:
+  - `gcc *.c -o filesoul_check.exe`
+  - `gcc -Wall -Wextra *.c -o filesoul_check.exe`
+- Changes:
+  - Set Windows console input/output code pages to UTF-8 at program startup.
+  - Rewrote user-facing strings in the main flow, file list, personality names, dialogues, scanner messages, deletion reasons, statistics, and reports.
+  - Replaced the popup path with `MessageBoxW` and UTF-8 to wide-character conversion.
+  - Updated README with Korean usage and encoding notes.
+- Verification:
+  - `gcc *.c -o filesoul_check.exe` succeeded.
+  - `gcc -Wall -Wextra *.c -o filesoul_check.exe` succeeded without warnings.
+- Notes:
+  - The popup still only displays dialogue; action choices remain in the terminal.
+  - If a terminal still shows mojibake, run `chcp 65001` before launching the program.

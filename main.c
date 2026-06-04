@@ -3,6 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #include "delete_actions.h"
 #include "dialogue_view.h"
 #include "file_node.h"
@@ -48,7 +52,7 @@ static int askDialogueLimit(int totalFiles) {
     long value;
     char* end;
 
-    printf("대화할 파일 수를 입력하세요. 빈 입력은 10개: ");
+    printf("대화할 파일 개수를 입력하세요. 빈 입력은 10개입니다: ");
     if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
         return totalFiles < 10 ? totalFiles : 10;
     }
@@ -89,9 +93,13 @@ int main(void) {
     int dialogueLimit;
 
     setlocale(LC_ALL, "");
+#ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+#endif
 
-    printf("FileSoul - 파이리의 외침\n");
-    printf("주의: 실제 삭제는 기본 비활성화이며, DELETE 확인 후에만 수행됩니다.\n");
+    printf("FileSoul - 파일들의 목소리\n");
+    printf("주의: 실제 삭제는 기본적으로 꺼져 있으며, DELETE 확인 후에만 실행됩니다.\n");
     printf("검사할 폴더 경로를 입력하세요. 빈 입력은 현재 폴더입니다: ");
 
     if (fgets(folderPath, sizeof(folderPath), stdin) == NULL) {

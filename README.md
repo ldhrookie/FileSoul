@@ -1,58 +1,74 @@
-# FileSoul - Pyri's Cry
+# FileSoul - 파일들의 목소리
 
-FileSoul is a terminal-based C program that scans a folder, assigns each file a simple personality and mood, and helps the user decide what to do with each file.
+FileSoul은 폴더 안의 파일을 스캔하고, 각 파일에 간단한 성격과 기분을 붙인 뒤 사용자가 파일을 정리할 수 있게 도와주는 C 기반 터미널 프로그램입니다.
 
-## Build
+## 빌드
 
 ```sh
 gcc *.c -o filesoul.exe
 ```
 
-The active build uses root-level `.c` and `.h` files. The `src/` folder is a preparation area and is not part of the current build.
+현재 활성 빌드는 루트의 `.c`, `.h` 파일을 사용합니다. `src/` 폴더는 이후 정리를 위한 준비 영역이며 현재 빌드 대상은 아닙니다.
+`filesoul.exe`는 빌드 결과물이므로 Git 추적 대상에서 제외되어 있습니다.
 
-## Run
+## 실행
 
 ```sh
 .\filesoul.exe
 ```
 
-The program asks for:
+프로그램은 순서대로 다음 내용을 묻습니다.
 
-- folder path, with empty input meaning `.`
-- whether guarded real deletion should be enabled
-- how many files to discuss
-- per-file or batch choices
+- 검사할 폴더 경로. 빈 입력은 현재 폴더입니다.
+- 실제 삭제 기능을 사용할지 여부. 기본값은 사용하지 않음입니다.
+- 대화할 파일 개수
+- 파일별 선택 또는 남은 파일 일괄 선택
 
-## Current Features
+## 현재 기능
 
-- Windows folder scanning
-- file path, name, extension, size, and modified time storage
-- `FileSoul` data separated from `FileNode` linked list nodes
-- extension-based file type classification
-- mood, personality, dialogue, and interest score calculation
-- `InterestCalculator` function pointer
-- sorted dialogue flow by interest score
-- choices: open, keep, delete candidate, ignore
-- batch choices: ignore remaining files or mark remaining files as delete candidates
-- delete candidate preview
-- guarded real deletion with exact `DELETE` confirmation
-- protected file checks
-- extension-by-extension statistics
-- report generation at `results/reports/report.txt`
+- Windows 폴더 스캔
+- 파일 경로, 이름, 확장자, 크기, 수정 시각 저장
+- `FileSoul` 파일 데이터와 `FileNode` 연결 리스트 노드 분리
+- 확장자 기반 파일 종류 분류
+- 기분, 성격, 대사, 관심도 계산
+- `InterestCalculator` 함수 포인터
+- 관심도 높은 순서의 대화 흐름
+- Windows `MessageBoxW` 기반 플로팅 대사 팝업
+- 터미널 선택지: 열기, 보관, 삭제 후보 등록, 무시
+- 일괄 선택지: 남은 파일 모두 무시, 남은 파일 모두 삭제 후보 등록
+- 삭제 후보 미리보기
+- 정확한 `DELETE` 확인을 요구하는 보호된 실제 삭제 흐름
+- 보호 파일 차단과 차단 사유 표시
+- 확장자별 통계
+- 큰 폴더 데모를 위한 대화 개수 제한
+- `results/reports/report.txt` 보고서 생성
 
-## Deletion Safety
+## 삭제 안전 정책
 
-Real deletion is disabled by default. It only runs when:
+실제 삭제는 기본적으로 꺼져 있습니다. 실제 삭제는 다음 조건을 모두 만족할 때만 실행됩니다.
 
-1. the user enables real deletion at startup,
-2. files are marked as delete candidates,
-3. the delete preview is shown,
-4. the user types `DELETE` exactly,
-5. the file passes protection checks,
-6. the file is inside the scanned folder.
+1. 사용자가 시작 시 실제 삭제를 켭니다.
+2. 파일이 삭제 후보로 등록됩니다.
+3. 삭제 후보 미리보기가 표시됩니다.
+4. 사용자가 `DELETE`를 정확히 입력합니다.
+5. 파일이 보호 검사에 통과합니다.
+6. 파일이 스캔한 폴더 안에 있습니다.
 
-Protected files include executables, scripts, repository files, source files, reports, directories, paths containing `..`, and files outside the scan root.
+실행 파일, 스크립트, 저장소 파일, 소스 파일, 보고서, 폴더, `..`가 포함된 경로, 스캔 폴더 밖 파일은 보호됩니다.
+삭제가 차단되면 차단 사유가 `FileSoul.deleteMessage`에 저장되고 터미널과 보고서에 출력됩니다.
 
-## Reports
+실제 삭제 테스트는 `tests/delete_demo/` 같은 임시 폴더에서만 진행해야 합니다. 프로젝트 소스 파일이나 문서 폴더를 대상으로 실제 삭제 테스트를 하지 마세요.
 
-The report includes scan summary, delete results, extension statistics, and per-file details. If `results/reports/report.txt` cannot be opened, the program attempts to write `report.txt`.
+## 보고서
+
+보고서에는 스캔 요약, 삭제 결과, 확장자별 통계, 삭제 메시지, 파일별 상세 정보가 포함됩니다.
+`results/reports/report.txt`를 열 수 없으면 `report.txt`에 저장을 시도합니다.
+
+## 한글 출력
+
+소스 문자열은 UTF-8 한글 기준입니다. 프로그램 시작 시 Windows 콘솔 코드페이지를 UTF-8로 설정합니다.
+PowerShell에서 여전히 한글이 깨지면 실행 전에 다음 명령을 한 번 입력하세요.
+
+```powershell
+chcp 65001
+```

@@ -33,6 +33,14 @@ static int containsText(const char* text, const char* pattern) {
     return text != NULL && pattern != NULL && strstr(text, pattern) != NULL;
 }
 
+static void copyReason(char* reason, int reasonSize, const char* message) {
+    if (reason == NULL || reasonSize <= 0) {
+        return;
+    }
+
+    snprintf(reason, (size_t)reasonSize, "%s", message != NULL ? message : "");
+}
+
 static void setDeleteMessage(FileSoul* file, int deleted, int failed, const char* message) {
     if (file == NULL) {
         return;
@@ -53,45 +61,80 @@ static int isSourceFile(const FileSoul* file) {
            equalsIgnoreCase(file->extension, "cpp");
 }
 
-int isProtectedFile(const FileSoul* file) {
+static int isDocumentFileName(const char* name) {
+    return equalsIgnoreCase(name, "AGENTS.md") ||
+           equalsIgnoreCase(name, "README.md") ||
+           equalsIgnoreCase(name, "TASKS.md") ||
+           equalsIgnoreCase(name, "architecture.md") ||
+           equalsIgnoreCase(name, "implementation_plan.md") ||
+           equalsIgnoreCase(name, "working_log.md");
+}
+
+static int getProtectedFileReason(const FileSoul* file, char* reason, int reasonSize) {
     if (file == NULL || file->path[0] == '\0' || file->name[0] == '\0') {
+        copyReason(reason, reasonSize, "삭제 차단: 파일 정보가 완전하지 않습니다.");
         return 1;
     }
 
-    if (containsText(file->path, "..") || containsText(file->path, ".git\\") ||
-        containsText(file->path, ".git/")) {
+    if (containsText(file->path, "..")) {
+        copyReason(reason, reasonSize, "삭제 차단: '..'가 포함된 경로는 안전하지 않습니다.");
         return 1;
     }
 
-    if (equalsIgnoreCase(file->name, "filesoul.exe") ||
-        equalsIgnoreCase(file->name, ".gitignore") ||
-        equalsIgnoreCase(file->name, "AGENTS.md") ||
-        equalsIgnoreCase(file->name, "README.md") ||
-        equalsIgnoreCase(file->name, "TASKS.md") ||
-        equalsIgnoreCase(file->name, "working_log.md") ||
-        equalsIgnoreCase(file->name, "report.txt")) {
+    if (containsText(file->path, ".git\\") || containsText(file->path, ".git/")) {
+        copyReason(reason, reasonSize, "삭제 차단: Git 내부 파일은 삭제할 수 없습니다.");
+        return 1;
+    }
+
+    if (equalsIgnoreCase(file->name, "filesoul.exe")) {
+        copyReason(reason, reasonSize, "삭제 차단: filesoul.exe는 빌드 결과물입니다.");
+        return 1;
+    }
+
+    if (isDocumentFileName(file->name)) {
+        copyReason(reason, reasonSize, "삭제 차단: 프로젝트 문서 파일입니다.");
+        return 1;
+    }
+
+    if (equalsIgnoreCase(file->name, ".gitignore") ||
+        equalsIgnoreCase(file->name, ".gitattributes")) {
+        copyReason(reason, reasonSize, "삭제 차단: 저장소 설정 파일은 보호됩니다.");
+        return 1;
+    }
+
+    if (equalsIgnoreCase(file->name, "report.txt") ||
+        containsText(file->path, "results\\reports\\report.txt") ||
+        containsText(file->path, "results/reports/report.txt")) {
+        copyReason(reason, reasonSize, "삭제 차단: 생성된 보고서 파일은 보호됩니다.");
         return 1;
     }
 
     if (equalsIgnoreCase(file->extension, "exe") ||
         equalsIgnoreCase(file->extension, "dll") ||
-        equalsIgnoreCase(file->extension, "sys") ||
-        equalsIgnoreCase(file->extension, "bat") ||
+        equalsIgnoreCase(file->extension, "sys")) {
+        copyReason(reason, reasonSize, "삭제 차단: 실행 파일 또는 시스템 파일은 보호됩니다.");
+        return 1;
+    }
+
+    if (equalsIgnoreCase(file->extension, "bat") ||
         equalsIgnoreCase(file->extension, "cmd") ||
         equalsIgnoreCase(file->extension, "ps1")) {
+        copyReason(reason, reasonSize, "삭제 차단: 스크립트 파일은 보호됩니다.");
         return 1;
     }
 
     if (isSourceFile(file)) {
-        return 1;
-    }
-
-    if (containsText(file->path, "results\\reports\\report.txt") ||
-        containsText(file->path, "results/reports/report.txt")) {
+        copyReason(reason, reasonSize, "삭제 차단: 프로젝트 소스 파일은 보호됩니다.");
         return 1;
     }
 
     return 0;
+}
+
+int isProtectedFile(const FileSoul* file) {
+    char reason[MAX_DELETE_MESSAGE_LENGTH];
+
+    return getProtectedFileReason(file, reason, sizeof(reason));
 }
 
 int isInsideScanRoot(const char* scanRoot, const char* filePath) {
@@ -121,69 +164,67 @@ int isInsideScanRoot(const char* scanRoot, const char* filePath) {
 #endif
 }
 
-int canDeleteFile(const FileSoul* file, const char* scanRoot) {
+int canDeleteFile(const FileSoul* file, const char* scanRoot, char* reason, int reasonSize) {
 #ifdef _WIN32
     DWORD attributes;
 #endif
 
+    copyReason(reason, reasonSize, "");
+
     if (file == NULL) {
+        copyReason(reason, reasonSize, "삭제 차단: 파일 정보가 없습니다.");
         return 0;
     }
 
     if (!file->deleteCandidate) {
+        copyReason(reason, reasonSize, "건너뜀: 삭제 후보로 등록된 파일이 아닙니다.");
         return 0;
     }
 
-    if (isProtectedFile(file)) {
+    if (getProtectedFileReason(file, reason, reasonSize)) {
         return 0;
     }
 
     if (!isInsideScanRoot(scanRoot, file->path)) {
+        copyReason(reason, reasonSize, "삭제 차단: 스캔한 폴더 밖의 파일입니다.");
         return 0;
     }
 
 #ifdef _WIN32
     attributes = GetFileAttributesA(file->path);
-    if (attributes == INVALID_FILE_ATTRIBUTES ||
-        (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
+    if (attributes == INVALID_FILE_ATTRIBUTES) {
+        copyReason(reason, reasonSize, "삭제 차단: 파일 속성을 읽을 수 없습니다.");
+        return 0;
+    }
+
+    if ((attributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
+        copyReason(reason, reasonSize, "삭제 차단: 폴더는 삭제 대상이 아닙니다.");
         return 0;
     }
 #endif
 
+    copyReason(reason, reasonSize, "삭제 준비 완료.");
     return 1;
 }
 
 int deleteSingleFile(FileSoul* file, const char* scanRoot) {
+    char reason[MAX_DELETE_MESSAGE_LENGTH];
+
     if (file == NULL) {
         return 0;
     }
 
-    if (!file->deleteCandidate) {
-        setDeleteMessage(file, 0, 0, "Skipped: not a delete candidate");
-        return 0;
-    }
-
-    if (isProtectedFile(file)) {
-        setDeleteMessage(file, 0, 1, "Skipped: protected file");
-        return 0;
-    }
-
-    if (!isInsideScanRoot(scanRoot, file->path)) {
-        setDeleteMessage(file, 0, 1, "Skipped: outside scan root");
-        return 0;
-    }
-
-    if (!canDeleteFile(file, scanRoot)) {
-        setDeleteMessage(file, 0, 1, "Skipped: not a deletable regular file");
+    if (!canDeleteFile(file, scanRoot, reason, sizeof(reason))) {
+        setDeleteMessage(file, 0, file->deleteCandidate ? 1 : 0, reason);
         return 0;
     }
 
     if (remove(file->path) == 0) {
-        setDeleteMessage(file, 1, 0, "Deleted successfully");
+        setDeleteMessage(file, 1, 0, "삭제 성공.");
         return 1;
     }
 
-    setDeleteMessage(file, 0, 1, "Failed: remove() returned an error");
+    setDeleteMessage(file, 0, 1, "삭제 실패: remove()가 오류를 반환했습니다.");
     return 0;
 }
 
@@ -193,6 +234,9 @@ int deleteCandidateFiles(FileNode* head, const char* scanRoot) {
     while (head != NULL) {
         if (head->data.deleteCandidate) {
             deleted += deleteSingleFile(&head->data, scanRoot);
+            if (head->data.deleteFailed) {
+                printf("%s: %s\n", head->data.name, head->data.deleteMessage);
+            }
         }
         head = head->next;
     }
@@ -205,20 +249,25 @@ void printDeletePreview(const FileNode* head) {
     long long bytes = 0;
     char sizeText[64];
 
-    printf("\n===== Delete Candidate Preview =====\n");
+    printf("\n===== 삭제 후보 미리보기 =====\n");
 
     while (head != NULL) {
         if (head->data.deleteCandidate) {
+            char reason[MAX_DELETE_MESSAGE_LENGTH];
             ++count;
             bytes += head->data.size;
             formatSize(head->data.size, sizeText, sizeof(sizeText));
-            printf("- %s (%s) %s\n", head->data.name, sizeText,
-                   isProtectedFile(&head->data) ? "[protected]" : "");
+            if (isProtectedFile(&head->data)) {
+                getProtectedFileReason(&head->data, reason, sizeof(reason));
+                printf("- %s (%s) [차단] %s\n", head->data.name, sizeText, reason);
+            } else {
+                printf("- %s (%s)\n", head->data.name, sizeText);
+            }
         }
         head = head->next;
     }
 
     formatSize(bytes, sizeText, sizeof(sizeText));
-    printf("Candidates: %d\n", count);
-    printf("Potential reclaimable size: %s\n", sizeText);
+    printf("삭제 후보 수: %d\n", count);
+    printf("예상 확보 공간: %s\n", sizeText);
 }
