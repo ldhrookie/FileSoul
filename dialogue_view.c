@@ -125,15 +125,13 @@ static UserChoice showFloatingDialogue(const FileSoul* file, const char* sizeTex
              "\"%.240s\"\n\n"
              "종류: %.80s  |  기분: %.80s\n"
              "성격: %.80s  |  크기: %.40s\n"
-             "정리 관심도: %.1f / 100\n\n"
-             "%s",
+             "정리 관심도: %.1f / 100",
              file->dialogue,
              getFileTypeName(file->type),
              getFileMoodName(file->mood),
              getPersonalityName(file->personality),
              sizeText != NULL ? sizeText : "",
-             file->interest,
-             getLlmDialogueStatus());
+             file->interest);
     snprintf(title, sizeof(title), "%.240s의 메시지", file->name);
 
     if (!utf8ToWide(message, wideMessage, (int)(sizeof(wideMessage) / sizeof(wideMessage[0]))) ||
@@ -242,7 +240,9 @@ void showPopupDialoguesLimited(FileNode* head, int maxFiles) {
                getPersonalityName(file->personality));
         printf("크기: %s | 관심도: %.1f\n", sizeText, file->interest);
         printf("\"%s\"\n", file->dialogue);
-        printf("대사 생성: %s\n", getLlmDialogueStatus());
+        if (shown == 0) {
+            printf("대사 생성 상태: %s\n", getLlmDialogueStatus());
+        }
 
         if (choice == CHOICE_NONE) {
             choice = readChoice();

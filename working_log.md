@@ -241,3 +241,26 @@
   - `OPENAI_API_KEY` enables LLM dialogue; `FILESOUL_LLM_MODEL` optionally changes the model.
   - File contents and full paths are not sent to the LLM.
   - Live API output and the visible TaskDialog require an API key and manual GUI interaction, so they were not exercised in the automated check.
+
+## 2026-06-04 - Fix PowerShell Korean output and API-key setup
+
+- Intent:
+  - Prevent Korean output from being decoded as CP949/ASCII by Windows PowerShell.
+  - Make it clear when LLM dialogue is enabled and provide a safe API-key entry path.
+- Important commands:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+  - `.\run_filesoul.cmd -LocalOnly`
+- Changes:
+  - Added `run_filesoul.ps1` to set PowerShell and console input/output encoding to UTF-8 before launch.
+  - Added `run_filesoul.cmd` so the launcher works without permanently changing PowerShell execution policy.
+  - Added secure, non-persistent API-key input when `OPENAI_API_KEY` is missing.
+  - Added startup LLM status without revealing the key.
+  - Removed repeated technical LLM status text from floating messages and limited terminal status to the first file.
+  - Documented the recommended PowerShell launch flow.
+- Verification:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe` succeeded without warnings.
+  - `.\run_filesoul.cmd -LocalOnly -SkipBuild` completed with readable Korean output.
+  - The launcher bypassed the local `.ps1` execution-policy restriction without changing the permanent policy.
+  - The no-key run showed the LLM-disabled startup guidance and used local dialogue.
+- Notes:
+  - The original shell used code page 949 with ASCII output encoding and had no `OPENAI_API_KEY`.

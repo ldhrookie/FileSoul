@@ -17,6 +17,17 @@ gcc *.c -o filesoul.exe
 .\filesoul.exe
 ```
 
+PowerShell에서는 한글 인코딩 설정, 빌드, API 키 입력을 함께 처리하는 실행 파일 사용을 권장합니다.
+
+```powershell
+.\run_filesoul.cmd
+```
+
+API 키는 보안 입력으로 받아 저장하지 않고 이번 실행에만 사용합니다.
+LLM 없이 실행하려면 `.\run_filesoul.cmd -LocalOnly`를 사용하세요.
+이미 빌드된 실행 파일을 다시 빌드하지 않으려면 `-SkipBuild`를 추가할 수 있습니다.
+`run_filesoul.cmd`는 PowerShell 실행 정책을 영구 변경하지 않고 이번 실행에만 허용합니다.
+
 프로그램은 순서대로 다음 내용을 묻습니다.
 
 - 검사할 폴더 경로. 빈 입력은 현재 폴더입니다.
@@ -78,8 +89,13 @@ chcp 65001
 
 ## LLM 대사
 
-Windows PowerShell에서 OpenAI API 키를 환경 변수로 설정하면, 파일 팝업이 열리기 직전에
-LLM이 각 파일의 성격과 현재 상태를 반영한 한국어 대사를 생성합니다.
+권장 실행 스크립트를 사용하면 API 키를 화면이나 명령 기록에 노출하지 않고 입력할 수 있습니다.
+
+```powershell
+.\run_filesoul.cmd
+```
+
+직접 환경 변수로 설정하려면 같은 PowerShell 창에서 설정한 뒤 프로그램을 실행해야 합니다.
 
 ```powershell
 $env:OPENAI_API_KEY="your-api-key"

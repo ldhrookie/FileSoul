@@ -85,6 +85,19 @@ static int confirmDelete(void) {
     return strcmp(buffer, "DELETE") == 0;
 }
 
+static void printLlmSetupStatus(void) {
+    const char* apiKey = getenv("OPENAI_API_KEY");
+    const char* model = getenv("FILESOUL_LLM_MODEL");
+
+    if (apiKey == NULL || apiKey[0] == '\0') {
+        printf("LLM 대사: 비활성화됨. .\\run_filesoul.cmd로 실행하면 API 키를 안전하게 입력할 수 있습니다.\n");
+        return;
+    }
+
+    printf("LLM 대사: 활성화됨 | 모델: %s\n",
+           model != NULL && model[0] != '\0' ? model : "gpt-4.1-mini");
+}
+
 int main(void) {
     char folderPath[MAX_PATH_LENGTH];
     FileNode* head = NULL;
@@ -100,6 +113,7 @@ int main(void) {
 
     printf("FileSoul - 파일들의 목소리\n");
     printf("주의: 실제 삭제는 기본적으로 꺼져 있으며, DELETE 확인 후에만 실행됩니다.\n");
+    printLlmSetupStatus();
     printf("검사할 폴더 경로를 입력하세요. 빈 입력은 현재 폴더입니다: ");
 
     if (fgets(folderPath, sizeof(folderPath), stdin) == NULL) {
