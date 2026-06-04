@@ -17,6 +17,7 @@
 - Extension statistics sorted by total size, file count, and extension name.
 - Protected delete checks now write detailed block reasons.
 - Dialogue output shortened for final demo stability.
+- Floating message actions and optional LLM personality dialogue added.
 
 ## Next Step 1: Demo Stability
 

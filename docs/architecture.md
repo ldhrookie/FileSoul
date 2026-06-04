@@ -10,7 +10,7 @@
 6. Sort by interest score.
 7. Print file list.
 8. Ask how many files to discuss.
-9. Run terminal dialogue choices, including batch choices.
+9. Generate an LLM dialogue when configured, then show a floating message with action buttons.
 10. Print statistics, including sorted extension statistics.
 11. Print delete candidate preview.
 12. If real deletion is enabled, require exact `DELETE` confirmation.
@@ -29,7 +29,8 @@
 
 - `scanner.c/.h`: Windows folder scan and scan filters
 - `personality.c/.h`: type, mood, personality, dialogue, interest score
-- `dialogue_view.c/.h`: terminal choices and batch actions
+- `llm_dialogue.c/.h`: OpenAI Responses API dialogue generation with local-dialogue fallback
+- `dialogue_view.c/.h`: floating message choices, terminal fallback, and batch actions
 - `delete_actions.c/.h`: guarded deletion, protected file checks, delete preview, block reasons
 - `stats.c/.h`: counts, sizes, sorted extension statistics, size formatting
 - `report.c/.h`: report output, sorted extension summary, delete messages, fallback report path
@@ -42,9 +43,10 @@ The program never deletes during normal selection. It only sets `deleteCandidate
 Actual deletion requires the startup opt-in, preview, exact `DELETE` confirmation, root containment check, protected file check, regular file check, and then `remove()`.
 Blocked deletion attempts store the reason in `FileSoul.deleteMessage` so the terminal and report explain why the file was skipped.
 
-## Demo Dialogue
+## Floating Dialogue
 
-The dialogue view keeps one file's output short: file name, type, mood, personality, size, interest score, and dialogue line. Full paths remain available in the report instead of crowding the terminal.
+On Windows, the dialogue view uses `TaskDialogIndirect` custom buttons so the file speaks and the user chooses an action in the same floating message. If the API key is configured, the LLM receives only file metadata and produces a short personality-driven Korean line. Full paths and file contents are not sent.
+The external `filesoul.exe.manifest` activates Common Controls v6 for the custom task dialog.
 
 ## Build Structure
 

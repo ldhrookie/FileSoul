@@ -216,3 +216,28 @@
 - Notes:
   - The popup still only displays dialogue; action choices remain in the terminal.
   - If a terminal still shows mojibake, run `chcp 65001` before launching the program.
+
+## 2026-06-04 - Add LLM personality dialogue and interactive floating messages
+
+- Intent:
+  - Make files speak through real floating messages instead of report or terminal-only output.
+  - Generate dialogue that clearly reflects each file's personality and current state.
+- Important commands:
+  - `git fetch origin`
+  - `git switch -c codex/llm-floating-dialogue`
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+- Changes:
+  - Added an optional OpenAI Responses API client using dynamically loaded Windows WinHTTP.
+  - Added metadata-only LLM prompts and a local personality-dialogue fallback.
+  - Replaced display-only popups with `TaskDialogIndirect` action buttons for open, keep, delete-candidate, and ignore.
+  - Added a Common Controls v6 application manifest so custom task-dialog buttons are available.
+  - Kept terminal choices as a non-Windows fallback.
+  - Documented LLM environment variables and the floating dialogue flow.
+- Verification:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe` succeeded without warnings.
+  - No-key terminal-fallback runtime completed successfully; the local personality dialogue remained active and the ignore choice was stored.
+  - `filesoul.exe` remained ignored after build and runtime verification.
+- Notes:
+  - `OPENAI_API_KEY` enables LLM dialogue; `FILESOUL_LLM_MODEL` optionally changes the model.
+  - File contents and full paths are not sent to the LLM.
+  - Live API output and the visible TaskDialog require an API key and manual GUI interaction, so they were not exercised in the automated check.
