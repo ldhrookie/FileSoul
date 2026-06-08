@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -90,6 +91,8 @@ static int utf8ToWide(const char* source, wchar_t* destination, int destinationS
 static UserChoice showFloatingDialogue(const FileSoul* file, const char* sizeText) {
 #ifdef _WIN32
     const char* terminalOnly = getenv("FILESOUL_TERMINAL_DIALOGUE");
+    const char* llmStatus = getLlmDialogueStatus();
+    int showLlmStatus = llmStatus != NULL && strstr(llmStatus, "반영한 대사를") == NULL;
     char message[1536];
     char title[320];
     wchar_t wideMessage[2048];
@@ -122,17 +125,33 @@ static UserChoice showFloatingDialogue(const FileSoul* file, const char* sizeTex
         return CHOICE_NONE;
     }
 
-    snprintf(message, sizeof(message),
-             "\"%.240s\"\n\n"
-             "종류: %.80s  |  기분: %.80s\n"
-             "성격: %.80s  |  크기: %.40s\n"
-             "정리 관심도: %.1f / 100",
-             file->dialogue,
-             getFileTypeName(file->type),
-             getFileMoodName(file->mood),
-             getPersonalityName(file->personality),
-             sizeText != NULL ? sizeText : "",
-             file->interest);
+    if (showLlmStatus) {
+        snprintf(message, sizeof(message),
+                 "\"%.240s\"\n\n"
+                 "종류: %.80s  |  기분: %.80s\n"
+                 "성격: %.80s  |  크기: %.40s\n"
+                 "정리 관심도: %.1f / 100\n\n"
+                 "대사 생성 상태: %.220s",
+                 file->dialogue,
+                 getFileTypeName(file->type),
+                 getFileMoodName(file->mood),
+                 getPersonalityName(file->personality),
+                 sizeText != NULL ? sizeText : "",
+                 file->interest,
+                 llmStatus);
+    } else {
+        snprintf(message, sizeof(message),
+                 "\"%.240s\"\n\n"
+                 "종류: %.80s  |  기분: %.80s\n"
+                 "성격: %.80s  |  크기: %.40s\n"
+                 "정리 관심도: %.1f / 100",
+                 file->dialogue,
+                 getFileTypeName(file->type),
+                 getFileMoodName(file->mood),
+                 getPersonalityName(file->personality),
+                 sizeText != NULL ? sizeText : "",
+                 file->interest);
+    }
     snprintf(title, sizeof(title), "%.240s의 메시지", file->name);
 
     if (!utf8ToWide(message, wideMessage, (int)(sizeof(wideMessage) / sizeof(wideMessage[0]))) ||

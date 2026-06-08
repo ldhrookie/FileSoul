@@ -120,24 +120,25 @@ static int hexValue(char value) {
     return -1;
 }
 
-static int extractOutputText(const char* response, char* destination, size_t capacity) {
-    const char* outputType;
-    const char* textKey;
+static int extractJsonStringAfter(const char* response, const char* anchor, const char* key,
+                                  char* destination, size_t capacity) {
+    const char* start;
+    const char* keyPosition;
     const char* current;
     size_t length = 0;
 
-    if (response == NULL || destination == NULL || capacity == 0) {
+    if (response == NULL || key == NULL || destination == NULL || capacity == 0) {
         return 0;
     }
 
     destination[0] = '\0';
-    outputType = strstr(response, "\"output_text\"");
-    textKey = outputType != NULL ? strstr(outputType, "\"text\"") : NULL;
-    if (textKey == NULL) {
+    start = anchor != NULL ? strstr(response, anchor) : response;
+    keyPosition = start != NULL ? strstr(start, key) : NULL;
+    if (keyPosition == NULL) {
         return 0;
     }
 
-    current = strchr(textKey + 6, ':');
+    current = strchr(keyPosition + strlen(key), ':');
     if (current == NULL) {
         return 0;
     }
@@ -185,6 +186,21 @@ static int extractOutputText(const char* response, char* destination, size_t cap
     }
 
     return length > 0;
+}
+
+static int extractErrorMessage(const char* response, char* destination, size_t capacity) {
+    if (extractJsonStringAfter(response, "\"error\"", "\"message\"", destination, capacity)) {
+        return 1;
+    }
+    return extractJsonStringAfter(response, NULL, "\"message\"", destination, capacity);
+}
+
+static int extractOutputText(const char* response, char* destination, size_t capacity) {
+    if (extractJsonStringAfter(response, "\"output_text\"", "\"text\"", destination, capacity)) {
+        return 1;
+    }
+
+    return extractJsonStringAfter(response, NULL, "\"output_text\"", destination, capacity);
 }
 
 static int buildRequest(const FileSoul* file, const char* model, char* request, size_t capacity) {
@@ -248,6 +264,7 @@ typedef BOOL(WINAPI* WinHttpQueryDataAvailableFunction)(HINTERNET, LPDWORD);
 typedef BOOL(WINAPI* WinHttpReadDataFunction)(HINTERNET, LPVOID, DWORD, LPDWORD);
 typedef BOOL(WINAPI* WinHttpCloseHandleFunction)(HINTERNET);
 typedef BOOL(WINAPI* WinHttpSetTimeoutsFunction)(HINTERNET, int, int, int, int);
+typedef BOOL(WINAPI* WinHttpQueryHeadersFunction)(HINTERNET, DWORD, LPCWSTR, LPVOID, LPDWORD, LPDWORD);
 
 typedef struct {
     HMODULE library;
@@ -260,6 +277,7 @@ typedef struct {
     WinHttpReadDataFunction readData;
     WinHttpCloseHandleFunction closeHandle;
     WinHttpSetTimeoutsFunction setTimeouts;
+    WinHttpQueryHeadersFunction queryHeaders;
 } WinHttpApi;
 
 static int loadWinHttp(WinHttpApi* api) {
@@ -287,12 +305,13 @@ static int loadWinHttp(WinHttpApi* api) {
     LOAD_WINHTTP(WinHttpReadData, readData);
     LOAD_WINHTTP(WinHttpCloseHandle, closeHandle);
     LOAD_WINHTTP(WinHttpSetTimeouts, setTimeouts);
+    LOAD_WINHTTP(WinHttpQueryHeaders, queryHeaders);
 #undef LOAD_WINHTTP
 
     if (api->open == NULL || api->connect == NULL || api->openRequest == NULL ||
         api->sendRequest == NULL || api->receiveResponse == NULL ||
         api->queryDataAvailable == NULL || api->readData == NULL ||
-        api->closeHandle == NULL || api->setTimeouts == NULL) {
+        api->closeHandle == NULL || api->setTimeouts == NULL || api->queryHeaders == NULL) {
         FreeLibrary(api->library);
         memset(api, 0, sizeof(*api));
         return 0;
@@ -366,6 +385,31 @@ static int requestDialogue(const char* apiKey, const char* body, char* response,
     success = responseLength > 0;
     if (!success) {
         setStatus("LLM API 응답이 비어 있어 로컬 대사를 사용합니다.");
+    } else {
+        DWORD statusCode = 0;
+        DWORD statusCodeSize = sizeof(statusCode);
+        DWORD index = 0;
+
+        if (api.queryHeaders(request,
+                             WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
+                             WINHTTP_HEADER_NAME_BY_INDEX,
+                             &statusCode,
+                             &statusCodeSize,
+                             &index) &&
+            (statusCode < 200 || statusCode >= 300)) {
+            char errorMessage[256];
+
+            if (extractErrorMessage(response, errorMessage, sizeof(errorMessage))) {
+                snprintf(llmStatus, sizeof(llmStatus),
+                         "LLM API HTTP %lu: %.120s",
+                         (unsigned long)statusCode, errorMessage);
+            } else {
+                snprintf(llmStatus, sizeof(llmStatus),
+                         "LLM API HTTP %lu 응답이라 로컬 대사를 사용합니다.",
+                         (unsigned long)statusCode);
+            }
+            success = 0;
+        }
     }
 
 cleanup:

@@ -107,4 +107,5 @@ $env:OPENAI_API_KEY="your-api-key"
 
 기본 모델은 `gpt-4.1-mini`이며 `FILESOUL_LLM_MODEL` 환경 변수로 변경할 수 있습니다.
 API 키가 없거나 요청이 실패하면 프로그램은 멈추지 않고 기존 로컬 대사를 사용합니다.
+API 키가 있는데도 로컬 대사가 나오면 팝업과 첫 대화 상태의 `LLM API HTTP ...` 메시지를 확인하세요.
 자동 테스트나 팝업을 사용할 수 없는 환경에서는 `FILESOUL_TERMINAL_DIALOGUE=1`로 기존 터미널 선택을 사용할 수 있습니다.

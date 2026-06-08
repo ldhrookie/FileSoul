@@ -304,3 +304,21 @@
   - `.\run_filesoul.cmd -LocalOnly -SkipBuild` completed with readable Korean FileSoul output.
 - Notes:
   - FileSoul application output remains Korean and uses direct UTF-16 Windows console output.
+
+## 2026-06-08 - Surface LLM fallback reasons
+
+- Intent:
+  - Explain why FileSoul falls back to local dialogue even when an API key is present.
+- Important commands:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+  - No-key terminal fallback smoke run
+- Changes:
+  - Added HTTP status-code inspection for OpenAI Responses API calls.
+  - Extracted OpenAI `error.message` values into the LLM status string.
+  - Made successful response text extraction more tolerant.
+  - Show LLM fallback status in the popup when generation fails.
+- Verification:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe` succeeded without warnings.
+  - No-key fallback path still runs and reports local dialogue use.
+- Notes:
+  - Live API success/failure cannot be reproduced here because this shell has no `OPENAI_API_KEY`.
