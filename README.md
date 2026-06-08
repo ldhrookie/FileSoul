@@ -110,4 +110,5 @@ $env:OPENAI_API_KEY="your-api-key"
 API 키가 없거나 요청이 실패하면 프로그램은 멈추지 않고 기존 로컬 대사를 사용합니다.
 API 키가 있는데도 로컬 대사가 나오면 팝업과 첫 대화 상태의 `LLM API HTTP ...` 메시지를 확인하세요.
 대사 생성은 OpenAI Chat Completions API를 사용하며 파일 내용과 전체 경로는 보내지 않습니다.
+응답 파싱에 실패하면 `llm_debug_response.json`에 API 응답이 저장됩니다. 이 파일에는 API 키가 들어가지 않습니다.
 자동 테스트나 팝업을 사용할 수 없는 환경에서는 `FILESOUL_TERMINAL_DIALOGUE=1`로 기존 터미널 선택을 사용할 수 있습니다.

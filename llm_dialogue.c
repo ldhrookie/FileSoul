@@ -195,15 +195,44 @@ static int extractErrorMessage(const char* response, char* destination, size_t c
     return extractJsonStringAfter(response, NULL, "\"message\"", destination, capacity);
 }
 
+static void writeDebugResponse(const char* reason, const char* response) {
+    FILE* file = fopen("llm_debug_response.json", "w");
+
+    if (file == NULL) {
+        return;
+    }
+
+    fprintf(file, "reason: %s\n\n", reason != NULL ? reason : "unknown");
+    fprintf(file, "%s\n", response != NULL ? response : "(no response)");
+    fclose(file);
+}
+
 static int extractOutputText(const char* response, char* destination, size_t capacity) {
     if (extractJsonStringAfter(response, "\"message\"", "\"content\"", destination, capacity)) {
+        return 1;
+    }
+
+    if (extractJsonStringAfter(response, "\"content\"", "\"text\"", destination, capacity)) {
+        return 1;
+    }
+
+    if (extractJsonStringAfter(response, "\"type\":\"output_text\"", "\"text\"", destination, capacity)) {
+        return 1;
+    }
+
+    if (extractJsonStringAfter(response, "\"type\": \"output_text\"", "\"text\"", destination, capacity)) {
         return 1;
     }
 
     if (extractJsonStringAfter(response, "\"output_text\"", "\"text\"", destination, capacity)) {
         return 1;
     }
-    return extractJsonStringAfter(response, NULL, "\"output_text\"", destination, capacity);
+
+    if (extractJsonStringAfter(response, NULL, "\"output_text\"", destination, capacity)) {
+        return 1;
+    }
+
+    return extractJsonStringAfter(response, "\"choices\"", "\"text\"", destination, capacity);
 }
 
 static int buildRequest(const FileSoul* file, const char* model, char* request, size_t capacity) {
@@ -233,7 +262,7 @@ static int buildRequest(const FileSoul* file, const char* model, char* request, 
     snprintf(prompt, sizeof(prompt),
              "너는 FileSoul이라는 파일 정리 프로그램 속 파일이다. "
              "사용자에게 직접 말하는 자연스러운 한국어 대사 한 줄만 써라. "
-             "설명, 따옴표, 목록, 파일 경로는 쓰지 말고 90자 이내로 말해라. "
+             "설명, 따옴표, 목록, 파일 경로, 이모지는 쓰지 말고 90자 이내로 말해라. "
              "삭제를 강요하거나 안전 검사를 무시하게 하지 마라. "
              "같은 성격의 다른 파일도 똑같이 말하지 않도록 파일명과 상태에서 개성을 만들어라. "
              "이번 파일의 말투 힌트는 '%s'이다. "
@@ -464,7 +493,16 @@ int generateLlmDialogue(FileSoul* file) {
     if (!requestDialogue(apiKey, request, response, sizeof(response)) ||
         !extractOutputText(response, dialogue, sizeof(dialogue))) {
         if (strstr(getLlmDialogueStatus(), "로컬 대사") == NULL) {
-            setStatus("LLM 응답에서 대사를 읽지 못해 로컬 대사를 사용합니다.");
+            if (strstr(response, "\"choices\"") != NULL) {
+                setStatus("LLM 응답에 choices는 있지만 대사 텍스트를 찾지 못했습니다. llm_debug_response.json을 확인하세요.");
+                writeDebugResponse("choices without readable text", response);
+            } else if (strstr(response, "\"output\"") != NULL || strstr(response, "\"output_text\"") != NULL) {
+                setStatus("LLM 응답에 output은 있지만 대사 텍스트를 찾지 못했습니다. llm_debug_response.json을 확인하세요.");
+                writeDebugResponse("output without readable text", response);
+            } else {
+                setStatus("LLM 응답에서 대사를 읽지 못해 로컬 대사를 사용합니다. llm_debug_response.json을 확인하세요.");
+                writeDebugResponse("unrecognized response", response);
+            }
         }
         return 0;
     }

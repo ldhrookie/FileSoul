@@ -302,6 +302,36 @@
 - Notes:
   - A running `filesoul.exe` process was observed and prevented rebuilding the latest code.
 
+## 2026-06-08 - Broaden LLM response parsing and debug failed responses
+
+- Intent:
+  - Diagnose and fix cases where the API returns successfully but FileSoul still falls back to local dialogue.
+- Important commands:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+- Changes:
+  - Broadened LLM text extraction across `message.content`, content-array text, Responses `output_text`, and legacy text fields.
+  - Added `llm_debug_response.json` output when a successful-looking response cannot be parsed.
+  - Ignored the debug response file in Git.
+- Verification:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe` succeeded without warnings.
+  - No-key terminal smoke run completed with `FILESOUL_TERMINAL_DIALOGUE=1` and reported local dialogue fallback.
+- Notes:
+  - The debug file contains API response JSON, not the API key.
+
+## 2026-06-08 - Check Gemini LLM API advice against current code
+
+- Intent:
+  - Compare the pasted Gemini recommendations with the current `llm_dialogue.c` implementation.
+- Important commands:
+  - `rg -n "v1/chat/completions|messages|max_tokens|message|content|llm_debug_response" llm_dialogue.c README.md .gitignore`
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+- Changes:
+  - No code changes were needed for the Gemini endpoint/request/response advice because the current branch already uses Chat Completions, `messages`, and `choices[].message.content` parsing.
+- Verification:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe` succeeded without warnings.
+- Notes:
+  - Gemini's claim that `/v1/responses` is not an official endpoint is inaccurate; the current branch still uses Chat Completions for simpler parsing and keeps Responses-style parsing as fallback.
+
 ## 2026-06-04 - Make launcher compatible with Windows PowerShell 5.1
 
 - Intent:

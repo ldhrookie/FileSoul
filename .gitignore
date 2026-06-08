@@ -3,6 +3,7 @@ filesoul.exe
 *.o
 *.obj
 *.log
+llm_debug_response.json
 report.txt
 results/reports/report.txt
 results/reports/
