@@ -37,6 +37,27 @@ static void addSampleFiles(FileNode** head) {
     appendFileNode(head, createSampleFileNode("game.exe", "exe", 7300000));
 }
 
+static int equalsIgnoreCase(const char* left, const char* right) {
+    while (left != NULL && right != NULL && *left != '\0' && *right != '\0') {
+        char a = *left;
+        char b = *right;
+
+        if (a >= 'A' && a <= 'Z') {
+            a = (char)(a - 'A' + 'a');
+        }
+        if (b >= 'A' && b <= 'Z') {
+            b = (char)(b - 'A' + 'a');
+        }
+        if (a != b) {
+            return 0;
+        }
+        ++left;
+        ++right;
+    }
+
+    return left != NULL && right != NULL && *left == '\0' && *right == '\0';
+}
+
 static int askYesNo(const char* prompt) {
     char buffer[32];
 
@@ -99,10 +120,74 @@ static void printLlmSetupStatus(void) {
            model != NULL && model[0] != '\0' ? model : "gpt-4.1-mini");
 }
 
+#ifdef _WIN32
+static int wideToUtf8(const wchar_t* source, char* destination, int destinationSize) {
+    int converted;
+
+    if (destination == NULL || destinationSize <= 0) {
+        return 0;
+    }
+
+    destination[0] = '\0';
+    if (source == NULL) {
+        return 0;
+    }
+
+    converted = WideCharToMultiByte(CP_UTF8, 0, source, -1, destination, destinationSize, NULL, NULL);
+    return converted != 0;
+}
+#endif
+
+static int readFolderPath(char* folderPath, int folderPathSize) {
+    char currentDirectory[MAX_PATH_LENGTH];
+
+    if (folderPath == NULL || folderPathSize <= 0) {
+        return 0;
+    }
+
+#ifdef _WIN32
+    {
+        wchar_t wideCurrentDirectory[MAX_PATH_LENGTH];
+
+        if (GetCurrentDirectoryW((DWORD)(sizeof(wideCurrentDirectory) / sizeof(wideCurrentDirectory[0])),
+                                 wideCurrentDirectory) == 0 ||
+            !wideToUtf8(wideCurrentDirectory, currentDirectory, sizeof(currentDirectory))) {
+            snprintf(currentDirectory, sizeof(currentDirectory), ".");
+        }
+    }
+#else
+    snprintf(currentDirectory, sizeof(currentDirectory), ".");
+#endif
+
+#ifdef _WIN32
+    if (currentDirectory[0] == '\0') {
+        snprintf(currentDirectory, sizeof(currentDirectory), ".");
+    }
+#endif
+
+    printf("\n현재 작업 폴더: %s\n", currentDirectory);
+    printf("검사할 폴더 경로를 입력하세요.\n");
+    printf("- 빈 입력: 현재 작업 폴더 검사\n");
+    printf("- sample 입력: 샘플 데이터로 데모 실행\n");
+    printf("경로: ");
+
+    if (fgets(folderPath, (size_t)folderPathSize, stdin) == NULL) {
+        return 0;
+    }
+
+    trimNewline(folderPath);
+    if (folderPath[0] == '\0') {
+        snprintf(folderPath, (size_t)folderPathSize, ".");
+    }
+
+    return 1;
+}
+
 int main(void) {
     char folderPath[MAX_PATH_LENGTH];
     FileNode* head = NULL;
     int scannedCount;
+    int sampleMode = 0;
     int allowRealDelete;
     int dialogueLimit;
 
@@ -115,26 +200,29 @@ int main(void) {
     printf("FileSoul - 파일들의 목소리\n");
     printf("주의: 실제 삭제는 기본적으로 꺼져 있으며, DELETE 확인 후에만 실행됩니다.\n");
     printLlmSetupStatus();
-    printf("검사할 폴더 경로를 입력하세요. 빈 입력은 현재 폴더입니다: ");
-
-    if (fgets(folderPath, sizeof(folderPath), stdin) == NULL) {
-        printf("\n입력이 종료되어 현재 폴더를 검사합니다.\n");
-        snprintf(folderPath, sizeof(folderPath), ".");
-    } else {
-        trimNewline(folderPath);
-        if (folderPath[0] == '\0') {
-            snprintf(folderPath, sizeof(folderPath), ".");
-        }
-    }
 
     allowRealDelete = askYesNo("실제 파일 삭제 기능을 사용할까요? [y/N]: ");
 
-    scannedCount = scanDirectory(folderPath, &head);
-    if (scannedCount == 0) {
-        printf("스캔된 파일이 없어 샘플 데이터로 진행합니다.\n");
-        addSampleFiles(&head);
-    } else {
-        printf("%d개 파일을 스캔했습니다.\n", scannedCount);
+    while (1) {
+        if (!readFolderPath(folderPath, sizeof(folderPath))) {
+            printf("\n입력이 종료되어 작업을 중단합니다.\n");
+            return 1;
+        }
+
+        if (equalsIgnoreCase(folderPath, "sample")) {
+            printf("샘플 데이터로 데모를 실행합니다.\n");
+            addSampleFiles(&head);
+            sampleMode = 1;
+            break;
+        }
+
+        scannedCount = scanDirectory(folderPath, &head);
+        if (scannedCount > 0) {
+            printf("%d개 파일을 스캔했습니다.\n", scannedCount);
+            break;
+        }
+
+        printf("스캔된 파일이 없습니다. 실제 폴더 경로를 다시 입력하거나 sample을 입력하세요.\n");
     }
 
     assignPersonalities(head);
@@ -157,7 +245,7 @@ int main(void) {
         printf("실제 삭제 기능이 꺼져 있어 파일을 삭제하지 않습니다.\n");
     }
 
-    writeReport(head, "results/reports/report.txt", folderPath);
+    writeReport(head, "results/reports/report.txt", sampleMode ? "sample" : folderPath);
     freeFileList(head);
 
     printf("FileSoul 작업이 끝났습니다.\n");

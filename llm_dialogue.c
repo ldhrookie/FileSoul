@@ -196,10 +196,13 @@ static int extractErrorMessage(const char* response, char* destination, size_t c
 }
 
 static int extractOutputText(const char* response, char* destination, size_t capacity) {
-    if (extractJsonStringAfter(response, "\"output_text\"", "\"text\"", destination, capacity)) {
+    if (extractJsonStringAfter(response, "\"message\"", "\"content\"", destination, capacity)) {
         return 1;
     }
 
+    if (extractJsonStringAfter(response, "\"output_text\"", "\"text\"", destination, capacity)) {
+        return 1;
+    }
     return extractJsonStringAfter(response, NULL, "\"output_text\"", destination, capacity);
 }
 
@@ -248,9 +251,11 @@ static int buildRequest(const FileSoul* file, const char* model, char* request, 
     request[0] = '\0';
     return appendText(request, capacity, &length, "{\"model\":\"") &&
            appendJsonEscaped(request, capacity, &length, model) &&
-           appendText(request, capacity, &length, "\",\"input\":\"") &&
+           appendText(request, capacity, &length,
+                      "\",\"messages\":[{\"role\":\"user\",\"content\":\"") &&
            appendJsonEscaped(request, capacity, &length, prompt) &&
-           appendText(request, capacity, &length, "\",\"max_output_tokens\":120}");
+           appendText(request, capacity, &length,
+                      "\"}],\"max_tokens\":120,\"temperature\":0.9}");
 }
 
 #ifdef _WIN32
@@ -350,7 +355,7 @@ static int requestDialogue(const char* apiKey, const char* body, char* response,
 
     connection = api.connect(session, L"api.openai.com", INTERNET_DEFAULT_HTTPS_PORT, 0);
     request = connection != NULL
-                  ? api.openRequest(connection, L"POST", L"/v1/responses", NULL,
+                  ? api.openRequest(connection, L"POST", L"/v1/chat/completions", NULL,
                                     WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES,
                                     WINHTTP_FLAG_SECURE)
                   : NULL;

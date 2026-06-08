@@ -227,7 +227,7 @@
   - `git switch -c codex/llm-floating-dialogue`
   - `gcc -Wall -Wextra *.c -o filesoul.exe`
 - Changes:
-  - Added an optional OpenAI Responses API client using dynamically loaded Windows WinHTTP.
+  - Added an optional OpenAI API client using dynamically loaded Windows WinHTTP.
   - Added metadata-only LLM prompts and a local personality-dialogue fallback.
   - Replaced display-only popups with `TaskDialogIndirect` action buttons for open, keep, delete-candidate, and ignore.
   - Added a Common Controls v6 application manifest so custom task-dialog buttons are available.
@@ -313,7 +313,7 @@
   - `gcc -Wall -Wextra *.c -o filesoul.exe`
   - No-key terminal fallback smoke run
 - Changes:
-  - Added HTTP status-code inspection for OpenAI Responses API calls.
+  - Added HTTP status-code inspection for OpenAI API calls.
   - Extracted OpenAI `error.message` values into the LLM status string.
   - Made successful response text extraction more tolerant.
   - Show LLM fallback status in the popup when generation fails.
@@ -322,3 +322,43 @@
   - No-key fallback path still runs and reports local dialogue use.
 - Notes:
   - Live API success/failure cannot be reproduced here because this shell has no `OPENAI_API_KEY`.
+
+## 2026-06-08 - Use simpler chat-completions dialogue parsing
+
+- Intent:
+  - Fix cases where the OpenAI request succeeds but FileSoul fails to extract the generated line.
+  - Avoid GCC output path failures from non-ASCII workspace paths.
+- Important commands:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+- Changes:
+  - Switched the LLM dialogue call to `/v1/chat/completions`.
+  - Extract dialogue from `choices[].message.content`, with Responses parsing kept as a fallback.
+  - Changed the launcher build command to use relative paths inside the repository.
+- Verification:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe` succeeded without warnings.
+  - `.\run_filesoul.cmd -LocalOnly` built with relative paths and avoided the non-ASCII output-path linker failure.
+  - No-key fallback smoke run completed successfully.
+- Notes:
+  - File contents and full paths remain excluded from LLM prompts.
+
+## 2026-06-08 - Require explicit sample mode
+
+- Intent:
+  - Stop FileSoul from silently using sample files when the scan path is wrong.
+  - Make it obvious which folder is being scanned.
+- Important commands:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+  - Invalid-path smoke run
+- Changes:
+  - Added a folder prompt that displays the current working directory.
+  - Retry scan-path input when the path cannot be opened or produces no scannable files.
+  - Use sample data only when the user explicitly enters `sample`.
+  - Switched Windows scanning to `FindFirstFileW`/`FindNextFileW` so Korean paths are handled correctly.
+  - Documented the explicit sample behavior.
+- Verification:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe` succeeded without warnings.
+  - Invalid-path run asked for another path instead of silently loading sample files.
+  - Explicit `sample` input still loads demo files.
+  - Empty path scanned the actual current repository folder and listed real files.
+- Notes:
+  - No real deletion was enabled or exercised.

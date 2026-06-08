@@ -53,10 +53,7 @@ try {
             Write-Host "Close the existing FileSoul window before rebuilding."
         }
         else {
-            $sources = @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter "*.c" |
-                ForEach-Object { $_.FullName })
-
-            & gcc -Wall -Wextra @sources -o $executablePath
+            & gcc -Wall -Wextra "*.c" -o "filesoul.exe"
             if ($LASTEXITCODE -ne 0) {
                 if (Test-Path -LiteralPath $executablePath) {
                     Write-Warning "Build failed. Running the existing filesoul.exe instead."
