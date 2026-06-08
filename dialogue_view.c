@@ -260,9 +260,7 @@ void showPopupDialoguesLimited(FileNode* head, int maxFiles) {
                getPersonalityName(file->personality));
         printf("크기: %s | 관심도: %.1f\n", sizeText, file->interest);
         printf("\"%s\"\n", file->dialogue);
-        if (shown == 0) {
-            printf("대사 생성 상태: %s\n", getLlmDialogueStatus());
-        }
+        printf("대사 생성 상태: %s\n", getLlmDialogueStatus());
 
         if (choice == CHOICE_NONE) {
             choice = readChoice();

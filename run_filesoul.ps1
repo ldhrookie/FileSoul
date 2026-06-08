@@ -49,18 +49,14 @@ try {
             Where-Object { $_.Path -eq $executablePath })
 
         if ($runningFileSoul.Count -gt 0) {
-            Write-Host "FileSoul is already running, so rebuild was skipped."
-            Write-Host "Close the existing FileSoul window before rebuilding."
+            Write-Host "FileSoul is already running."
+            Write-Host "Close every FileSoul popup/window, then run this launcher again."
+            throw "Cannot rebuild while filesoul.exe is running."
         }
         else {
             & gcc -Wall -Wextra "*.c" -o "filesoul.exe"
             if ($LASTEXITCODE -ne 0) {
-                if (Test-Path -LiteralPath $executablePath) {
-                    Write-Warning "Build failed. Running the existing filesoul.exe instead."
-                }
-                else {
-                    throw "FileSoul build failed and no existing executable is available."
-                }
+                throw "FileSoul build failed. Close FileSoul if it is running, then try again."
             }
         }
     }

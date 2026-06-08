@@ -286,6 +286,22 @@
 - Notes:
   - No real deletion was enabled or exercised.
 
+## 2026-06-08 - Stop launcher on locked executable and always print LLM status
+
+- Intent:
+  - Prevent users from accidentally running an old `filesoul.exe` when a prior FileSoul window is still open.
+  - Make LLM fallback status visible for every file.
+- Important commands:
+  - `Get-Process filesoul`
+- Changes:
+  - Launcher now stops when `filesoul.exe` is already running instead of skipping build and continuing.
+  - Launcher now fails loudly on build failure instead of silently running an existing executable.
+  - Dialogue view prints the current LLM generation status for every file, not only the first one.
+- Verification:
+  - Pending final build after the running `filesoul.exe` process is closed.
+- Notes:
+  - A running `filesoul.exe` process was observed and prevented rebuilding the latest code.
+
 ## 2026-06-04 - Make launcher compatible with Windows PowerShell 5.1
 
 - Intent:
