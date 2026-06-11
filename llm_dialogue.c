@@ -481,7 +481,7 @@ int generateLlmDialogue(FileSoul* file) {
 
     model = getenv("FILESOUL_LLM_MODEL");
     if (model == NULL || model[0] == '\0') {
-        model = "gpt-4.1-mini";
+        model = "존재하지 않음";
     }
 
     if (!buildRequest(file, model, request, sizeof(request))) {
