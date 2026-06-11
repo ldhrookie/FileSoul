@@ -18,6 +18,7 @@
 - Protected delete checks now write detailed block reasons.
 - Dialogue output shortened for final demo stability.
 - Floating message actions and optional LLM personality dialogue added.
+- Monitor overlay timer now recommends one additional file after each expiry.
 
 ## Next Step 1: Demo Stability
 
@@ -47,6 +48,5 @@
 
 - GUI
 - Background service
-- Windows overlay
 - Moving the root build into `src/`
 - Trash/recycle-bin integration

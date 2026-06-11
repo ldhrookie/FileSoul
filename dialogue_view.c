@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -59,6 +60,232 @@ static void applyChoice(FileSoul* file, UserChoice choice) {
 
     file->choice = choice;
     file->deleteCandidate = choice == CHOICE_DELETE_CANDIDATE;
+}
+
+static int getRecommendationTimerSeconds(void) {
+    const char* configured = getenv("FILESOUL_RECOMMEND_TIMER_SECONDS");
+    char* end;
+    long value;
+
+    if (configured == NULL || configured[0] == '\0') {
+        return 10;
+    }
+
+    value = strtol(configured, &end, 10);
+    if (end == configured || value < 0) {
+        return 10;
+    }
+    if (value > 3600) {
+        return 3600;
+    }
+
+    return (int)value;
+}
+
+static void sleepOneSecond(void) {
+#ifdef _WIN32
+    Sleep(1000);
+#else
+    time_t start = time(NULL);
+
+    while (time(NULL) == start) {
+    }
+#endif
+}
+
+#ifdef _WIN32
+typedef HWND(WINAPI* CreateWindowExAFunction)(DWORD, LPCSTR, LPCSTR, DWORD, int, int, int, int, HWND, HMENU, HINSTANCE, LPVOID);
+typedef BOOL(WINAPI* DestroyWindowFunction)(HWND);
+typedef int (WINAPI* GetSystemMetricsFunction)(int);
+typedef BOOL(WINAPI* PeekMessageAFunction)(LPMSG, HWND, UINT, UINT, UINT);
+typedef LRESULT(WINAPI* DispatchMessageAFunction)(const MSG*);
+typedef BOOL(WINAPI* SetWindowPosFunction)(HWND, HWND, int, int, int, int, UINT);
+typedef BOOL(WINAPI* SetWindowTextAFunction)(HWND, LPCSTR);
+typedef BOOL(WINAPI* ShowWindowFunction)(HWND, int);
+typedef BOOL(WINAPI* TranslateMessageFunction)(const MSG*);
+typedef BOOL(WINAPI* UpdateWindowFunction)(HWND);
+
+typedef struct {
+    HMODULE user32;
+    HWND window;
+    CreateWindowExAFunction createWindowExA;
+    DestroyWindowFunction destroyWindow;
+    GetSystemMetricsFunction getSystemMetrics;
+    PeekMessageAFunction peekMessageA;
+    DispatchMessageAFunction dispatchMessageA;
+    SetWindowPosFunction setWindowPos;
+    SetWindowTextAFunction setWindowTextA;
+    ShowWindowFunction showWindow;
+    TranslateMessageFunction translateMessage;
+    UpdateWindowFunction updateWindow;
+} TimerOverlay;
+
+static FARPROC loadUser32Function(HMODULE user32, const char* name) {
+    if (user32 == NULL || name == NULL) {
+        return NULL;
+    }
+
+    return GetProcAddress(user32, name);
+}
+
+#define LOAD_USER32_FUNCTION(overlay, member, functionType, functionName) \
+    do { \
+        union { \
+            FARPROC raw; \
+            functionType typed; \
+        } loader; \
+        loader.raw = loadUser32Function((overlay)->user32, (functionName)); \
+        (overlay)->member = loader.typed; \
+    } while (0)
+
+static int initTimerOverlay(TimerOverlay* overlay) {
+    int width = 170;
+    int height = 44;
+    int margin = 18;
+    int screenWidth;
+    int x;
+    int y;
+
+    if (overlay == NULL) {
+        return 0;
+    }
+
+    memset(overlay, 0, sizeof(*overlay));
+    overlay->user32 = LoadLibraryA("user32.dll");
+    if (overlay->user32 == NULL) {
+        return 0;
+    }
+
+    LOAD_USER32_FUNCTION(overlay, createWindowExA, CreateWindowExAFunction, "CreateWindowExA");
+    LOAD_USER32_FUNCTION(overlay, destroyWindow, DestroyWindowFunction, "DestroyWindow");
+    LOAD_USER32_FUNCTION(overlay, getSystemMetrics, GetSystemMetricsFunction, "GetSystemMetrics");
+    LOAD_USER32_FUNCTION(overlay, peekMessageA, PeekMessageAFunction, "PeekMessageA");
+    LOAD_USER32_FUNCTION(overlay, dispatchMessageA, DispatchMessageAFunction, "DispatchMessageA");
+    LOAD_USER32_FUNCTION(overlay, setWindowPos, SetWindowPosFunction, "SetWindowPos");
+    LOAD_USER32_FUNCTION(overlay, setWindowTextA, SetWindowTextAFunction, "SetWindowTextA");
+    LOAD_USER32_FUNCTION(overlay, showWindow, ShowWindowFunction, "ShowWindow");
+    LOAD_USER32_FUNCTION(overlay, translateMessage, TranslateMessageFunction, "TranslateMessage");
+    LOAD_USER32_FUNCTION(overlay, updateWindow, UpdateWindowFunction, "UpdateWindow");
+
+    if (overlay->createWindowExA == NULL ||
+        overlay->destroyWindow == NULL ||
+        overlay->getSystemMetrics == NULL ||
+        overlay->peekMessageA == NULL ||
+        overlay->dispatchMessageA == NULL ||
+        overlay->setWindowPos == NULL ||
+        overlay->setWindowTextA == NULL ||
+        overlay->showWindow == NULL ||
+        overlay->translateMessage == NULL ||
+        overlay->updateWindow == NULL) {
+        FreeLibrary(overlay->user32);
+        memset(overlay, 0, sizeof(*overlay));
+        return 0;
+    }
+
+    screenWidth = overlay->getSystemMetrics(SM_CXSCREEN);
+    x = screenWidth > width + margin ? screenWidth - width - margin : margin;
+    y = margin;
+    overlay->window = overlay->createWindowExA(
+        WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
+        "STATIC",
+        "FileSoul 00:00",
+        WS_POPUP | WS_BORDER | SS_CENTER,
+        x,
+        y,
+        width,
+        height,
+        NULL,
+        NULL,
+        GetModuleHandleA(NULL),
+        NULL);
+
+    if (overlay->window == NULL) {
+        FreeLibrary(overlay->user32);
+        memset(overlay, 0, sizeof(*overlay));
+        return 0;
+    }
+
+    overlay->setWindowPos(overlay->window, HWND_TOPMOST, x, y, width, height, SWP_SHOWWINDOW);
+    overlay->showWindow(overlay->window, SW_SHOWNOACTIVATE);
+    overlay->updateWindow(overlay->window);
+    return 1;
+}
+
+static void pumpTimerOverlayMessages(TimerOverlay* overlay) {
+    MSG message;
+
+    if (overlay == NULL || overlay->window == NULL) {
+        return;
+    }
+
+    while (overlay->peekMessageA(&message, NULL, 0, 0, PM_REMOVE)) {
+        overlay->translateMessage(&message);
+        overlay->dispatchMessageA(&message);
+    }
+}
+
+static void updateTimerOverlay(TimerOverlay* overlay, int remainingSeconds) {
+    char text[64];
+
+    if (overlay == NULL || overlay->window == NULL) {
+        return;
+    }
+
+    snprintf(text, sizeof(text), "FileSoul  %02d:%02d",
+             remainingSeconds / 60,
+             remainingSeconds % 60);
+    overlay->setWindowTextA(overlay->window, text);
+    overlay->updateWindow(overlay->window);
+    pumpTimerOverlayMessages(overlay);
+}
+
+static void closeTimerOverlay(TimerOverlay* overlay) {
+    if (overlay == NULL) {
+        return;
+    }
+
+    if (overlay->window != NULL && overlay->destroyWindow != NULL) {
+        overlay->destroyWindow(overlay->window);
+        overlay->window = NULL;
+    }
+    if (overlay->user32 != NULL) {
+        FreeLibrary(overlay->user32);
+        overlay->user32 = NULL;
+    }
+}
+#endif
+
+static void waitForRecommendationTimer(int seconds) {
+    int remaining;
+#ifdef _WIN32
+    TimerOverlay overlay;
+    int overlayReady = 0;
+#endif
+
+    if (seconds <= 0) {
+        return;
+    }
+
+#ifdef _WIN32
+    overlayReady = initTimerOverlay(&overlay);
+#endif
+
+    for (remaining = seconds; remaining > 0; --remaining) {
+#ifdef _WIN32
+        if (overlayReady) {
+            updateTimerOverlay(&overlay, remaining);
+        }
+#endif
+        sleepOneSecond();
+    }
+
+#ifdef _WIN32
+    if (overlayReady) {
+        updateTimerOverlay(&overlay, 0);
+        sleepOneSecond();
+        closeTimerOverlay(&overlay);
+    }
+#endif
 }
 
 #ifdef _WIN32
@@ -236,6 +463,7 @@ void showPopupDialogues(FileNode* head) {
 void showPopupDialoguesLimited(FileNode* head, int maxFiles) {
     FileNode* current = head;
     int shown = 0;
+    int timerSeconds = getRecommendationTimerSeconds();
 
     printf("\n===== FileSoul 대화 =====\n");
 
@@ -243,10 +471,16 @@ void showPopupDialoguesLimited(FileNode* head, int maxFiles) {
         maxFiles = 10;
     }
 
-    while (current != NULL && shown < maxFiles) {
+    while (current != NULL) {
         FileSoul* file = &current->data;
         UserChoice choice;
         char sizeText[64];
+
+        if (shown >= maxFiles) {
+            printf("\n모니터 위 타이머가 시작됩니다. 끝나면 새 파일 1개를 더 추천합니다.\n");
+            waitForRecommendationTimer(timerSeconds);
+            printf("\n타이머가 끝났습니다. 새 파일 1개를 더 추천합니다.\n");
+        }
 
         formatSize(file->size, sizeText, sizeof(sizeText));
         generateLlmDialogue(file);
@@ -299,12 +533,4 @@ void showPopupDialoguesLimited(FileNode* head, int maxFiles) {
         ++shown;
     }
 
-    while (current != NULL) {
-        applyChoice(&current->data, CHOICE_IGNORE);
-        current = current->next;
-    }
-
-    if (shown >= maxFiles) {
-        printf("\n대화 개수 제한에 도달했습니다. 남은 파일은 모두 무시됩니다.\n");
-    }
 }

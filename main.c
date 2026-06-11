@@ -74,6 +74,8 @@ static int askDialogueLimit(int totalFiles) {
     long value;
     char* end;
 
+    printf("처음 바로 추천할 파일 개수입니다. 남은 파일은 타이머가 끝날 때마다 1개씩 추가 추천됩니다.\n");
+
     printf("대화할 파일 개수를 입력하세요. 빈 입력은 10개입니다: ");
     if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
         return totalFiles < 10 ? totalFiles : 10;

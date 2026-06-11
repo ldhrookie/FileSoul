@@ -1,5 +1,28 @@
 ﻿# FileSoul Working Log
 
+## 2026-06-11 - Add timer-based extra recommendations
+
+- Intent:
+  - Show a timer after the initial recommendation limit.
+  - Recommend one additional file each time the timer finishes.
+- Important commands:
+  - `git fetch origin`
+  - `git checkout -b feat/timer-recommendations`
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+  - Sample runs with `FILESOUL_TERMINAL_DIALOGUE=1` and `FILESOUL_RECOMMEND_TIMER_SECONDS=0` / `1`
+- Changes:
+  - Clarified that the entered dialogue count is the immediate recommendation count.
+  - Added a monitor overlay recommendation timer in `dialogue_view.c`.
+  - Changed dialogue iteration so the initial limit no longer ignores the rest of the files; remaining files are shown one at a time after timer expiry.
+  - Added `FILESOUL_RECOMMEND_TIMER_SECONDS` to configure the timer interval, with `0` available for automated runs.
+  - Documented the timer behavior in README and the implementation plan.
+- Verification:
+  - Warning build succeeded.
+  - Sample run with an initial limit of 3 showed the first three files immediately, then recommended the fourth and fifth files after timer completion.
+  - A 1-second timer sample run no longer printed countdown text in the terminal.
+- Notes:
+  - No real deletion was enabled or exercised.
+
 ## 2026-06-01 16:02 - Update from GitHub and prepare integration
 
 - Intent:
