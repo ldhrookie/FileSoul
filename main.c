@@ -110,7 +110,7 @@ static int confirmDelete(void) {
 }
 
 static void printLlmSetupStatus(void) {
-    const char* apiKey = getenv("OPENAI_API_KEY");
+    const char* apiKey = getenv("GROQ_API_KEY");
     const char* model = getenv("FILESOUL_LLM_MODEL");
     const char* verificationFailed = getenv("FILESOUL_LLM_VERIFICATION_FAILED");
 
@@ -120,12 +120,12 @@ static void printLlmSetupStatus(void) {
     }
 
     if (apiKey == NULL || apiKey[0] == '\0') {
-        printf("LLM inactive: no verified API key. .\\run_filesoul.cmd can ask for one and test it safely.\n");
+        printf("LLM inactive: no verified Groq API key. .\\run_filesoul.cmd can ask for one and test it safely.\n");
         return;
     }
 
     printf("LLM verification pending | model: %s\n",
-           model != NULL && model[0] != '\0' ? model : "gpt-4.1-mini");
+           model != NULL && model[0] != '\0' ? model : "llama-3.1-8b-instant");
     printf("LLM is marked active only after a successful API response is applied to a file dialogue.\n");
 }
 

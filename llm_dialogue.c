@@ -388,9 +388,9 @@ static int requestDialogue(const char* apiKey, const char* body, char* response,
     }
     api.setTimeouts(session, 5000, 5000, 15000, 30000);
 
-    connection = api.connect(session, L"api.openai.com", INTERNET_DEFAULT_HTTPS_PORT, 0);
+    connection = api.connect(session, L"api.groq.com", INTERNET_DEFAULT_HTTPS_PORT, 0);
     request = connection != NULL
-                  ? api.openRequest(connection, L"POST", L"/v1/chat/completions", NULL,
+                  ? api.openRequest(connection, L"POST", L"/openai/v1/chat/completions", NULL,
                                     WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES,
                                     WINHTTP_FLAG_SECURE)
                   : NULL;
@@ -440,7 +440,7 @@ static int requestDialogue(const char* apiKey, const char* body, char* response,
             char errorMessage[256];
 
             if (statusCode == 401) {
-                setStatus("LLM verification failed: API key was rejected by OpenAI (HTTP 401); local dialogue is the final fallback.");
+                setStatus("LLM verification failed: API key was rejected by Groq (HTTP 401); local dialogue is the final fallback.");
             } else if (extractErrorMessage(response, errorMessage, sizeof(errorMessage))) {
                 snprintf(llmStatus, sizeof(llmStatus),
                          "LLM API HTTP %lu: %.120s",
@@ -492,15 +492,15 @@ int generateLlmDialogue(FileSoul* file) {
         return 0;
     }
 
-    apiKey = getenv("OPENAI_API_KEY");
+    apiKey = getenv("GROQ_API_KEY");
     if (apiKey == NULL || apiKey[0] == '\0') {
-        setStatus("LLM inactive: OPENAI_API_KEY is not set; local dialogue is the final fallback.");
+        setStatus("LLM inactive: GROQ_API_KEY is not set; local dialogue is the final fallback.");
         return 0;
     }
 
     model = getenv("FILESOUL_LLM_MODEL");
     if (model == NULL || model[0] == '\0') {
-        model = "gpt-4.1-mini";
+        model = "llama-3.1-8b-instant";
     }
 
     if (!buildRequest(file, model, request, sizeof(request))) {

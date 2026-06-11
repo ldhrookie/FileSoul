@@ -1,5 +1,40 @@
 ﻿# FileSoul Working Log
 
+## 2026-06-11 - Explain startup LLM HTTP 429
+
+- Intent:
+  - Explain the user's `LLM verification failed: HTTP 429` startup output.
+- Important commands:
+  - `rg -n "LLM verification|startup API verification|HTTP 429|Too Many Requests|disabled for this run|verify" -S .`
+  - `Get-Content run_filesoul.ps1`
+- Changes:
+  - No source code changes.
+  - Confirmed the launcher sends a real `/v1/chat/completions` verification request before starting FileSoul.
+  - Confirmed failed verification removes `OPENAI_API_KEY` for that run and sets `FILESOUL_LLM_VERIFICATION_FAILED`.
+- Verification:
+  - The reported HTTP 429 means OpenAI received the key-backed request but rejected it for quota/rate-limit reasons.
+- Notes:
+  - A new key from the same organization will still fail if the organization has no usable quota or is rate-limited.
+
+## 2026-06-11 - Switch LLM provider from OpenAI to Groq
+
+- Intent:
+  - Replace the paid OpenAI API path with Groq's OpenAI-compatible Chat Completions API.
+- Important commands:
+  - `rg -n "OpenAI|OPENAI|openai|api.openai.com|gpt-4.1-mini|GROQ|Groq" -S main.c llm_dialogue.c run_filesoul.ps1 README.md docs\architecture.md`
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+- Changes:
+  - Changed launcher API key handling from `OPENAI_API_KEY` to `GROQ_API_KEY`.
+  - Changed launcher verification to `https://api.groq.com/openai/v1/chat/completions`.
+  - Changed the C WinHTTP client host/path to `api.groq.com` and `/openai/v1/chat/completions`.
+  - Changed the default model to `llama-3.1-8b-instant`.
+  - Updated current README and architecture references to Groq.
+- Verification:
+  - Warning build succeeded.
+  - Current runtime files no longer reference the OpenAI host, OpenAI API key, or `gpt-4.1-mini`.
+- Notes:
+  - A real Groq success path still requires the user to enter a valid `GROQ_API_KEY`.
+
 ## 2026-06-11 - Gate local dialogue behind real LLM verification failure
 
 - Intent:

@@ -12,14 +12,14 @@ $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 $global:OutputEncoding = $utf8NoBom
 chcp.com 65001 | Out-Null
 
-$hadApiKey = Test-Path Env:OPENAI_API_KEY
-$previousApiKey = $env:OPENAI_API_KEY
+$hadApiKey = Test-Path Env:GROQ_API_KEY
+$previousApiKey = $env:GROQ_API_KEY
 $hadModel = Test-Path Env:FILESOUL_LLM_MODEL
 $previousModel = $env:FILESOUL_LLM_MODEL
 $hadVerificationFailed = Test-Path Env:FILESOUL_LLM_VERIFICATION_FAILED
 $previousVerificationFailed = $env:FILESOUL_LLM_VERIFICATION_FAILED
 
-function Test-OpenAiDialogueRequest {
+function Test-GroqDialogueRequest {
     param(
         [Parameter(Mandatory = $true)]
         [string]$ApiKey,
@@ -39,11 +39,11 @@ function Test-OpenAiDialogueRequest {
         temperature = 0
     } | ConvertTo-Json -Depth 5
 
-    Write-Host "LLM verification: sending a real OpenAI request now..."
+    Write-Host "LLM verification: sending a real Groq request now..."
     try {
         $response = Invoke-RestMethod `
             -Method Post `
-            -Uri "https://api.openai.com/v1/chat/completions" `
+            -Uri "https://api.groq.com/openai/v1/chat/completions" `
             -Headers @{
                 Authorization = "Bearer $ApiKey"
                 "Content-Type" = "application/json"
@@ -57,7 +57,7 @@ function Test-OpenAiDialogueRequest {
             return $true
         }
 
-        Write-Host "LLM verification failed: OpenAI returned no readable dialogue text."
+        Write-Host "LLM verification failed: Groq returned no readable dialogue text."
         return $false
     }
     catch {
@@ -91,22 +91,22 @@ function Test-OpenAiDialogueRequest {
 Push-Location $PSScriptRoot
 try {
     if ($LocalOnly) {
-        Remove-Item Env:OPENAI_API_KEY -ErrorAction SilentlyContinue
+        Remove-Item Env:GROQ_API_KEY -ErrorAction SilentlyContinue
     }
 
     if ($Model) {
         $env:FILESOUL_LLM_MODEL = $Model
     }
 
-    if (-not $LocalOnly -and -not $env:OPENAI_API_KEY) {
-        Write-Host "OPENAI_API_KEY is not set."
-        Write-Host "Enter an API key for LLM dialogue. It is used only for this run and is not saved."
+    if (-not $LocalOnly -and -not $env:GROQ_API_KEY) {
+        Write-Host "GROQ_API_KEY is not set."
+        Write-Host "Enter a Groq API key for LLM dialogue. It is used only for this run and is not saved."
         $secureKey = Read-Host "API key (press Enter to use local dialogue)" -AsSecureString
 
         if ($secureKey.Length -gt 0) {
             $keyPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureKey)
             try {
-                $env:OPENAI_API_KEY = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($keyPointer)
+                $env:GROQ_API_KEY = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($keyPointer)
             }
             finally {
                 [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($keyPointer)
@@ -114,14 +114,14 @@ try {
         }
     }
 
-    if (-not $LocalOnly -and $env:OPENAI_API_KEY) {
-        $modelName = if ($env:FILESOUL_LLM_MODEL) { $env:FILESOUL_LLM_MODEL } else { "gpt-4.1-mini" }
-        if (Test-OpenAiDialogueRequest -ApiKey $env:OPENAI_API_KEY -ModelName $modelName) {
+    if (-not $LocalOnly -and $env:GROQ_API_KEY) {
+        $modelName = if ($env:FILESOUL_LLM_MODEL) { $env:FILESOUL_LLM_MODEL } else { "llama-3.1-8b-instant" }
+        if (Test-GroqDialogueRequest -ApiKey $env:GROQ_API_KEY -ModelName $modelName) {
             Remove-Item Env:FILESOUL_LLM_VERIFICATION_FAILED -ErrorAction SilentlyContinue
         }
         else {
             $env:FILESOUL_LLM_VERIFICATION_FAILED = "startup API request failed"
-            Remove-Item Env:OPENAI_API_KEY -ErrorAction SilentlyContinue
+            Remove-Item Env:GROQ_API_KEY -ErrorAction SilentlyContinue
             Write-Host "LLM dialogue disabled for this run. Local dialogue will be shown only as the final fallback."
         }
     }
@@ -151,10 +151,10 @@ try {
 }
 finally {
     if ($hadApiKey) {
-        $env:OPENAI_API_KEY = $previousApiKey
+        $env:GROQ_API_KEY = $previousApiKey
     }
     else {
-        Remove-Item Env:OPENAI_API_KEY -ErrorAction SilentlyContinue
+        Remove-Item Env:GROQ_API_KEY -ErrorAction SilentlyContinue
     }
 
     if ($hadModel) {
