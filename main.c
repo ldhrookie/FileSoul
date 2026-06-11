@@ -112,14 +112,21 @@ static int confirmDelete(void) {
 static void printLlmSetupStatus(void) {
     const char* apiKey = getenv("OPENAI_API_KEY");
     const char* model = getenv("FILESOUL_LLM_MODEL");
+    const char* verificationFailed = getenv("FILESOUL_LLM_VERIFICATION_FAILED");
 
-    if (apiKey == NULL || apiKey[0] == '\0') {
-        printf("LLM 대사: 비활성화됨. .\\run_filesoul.cmd로 실행하면 API 키를 안전하게 입력할 수 있습니다.\n");
+    if (verificationFailed != NULL && verificationFailed[0] != '\0') {
+        printf("LLM inactive: startup API verification failed. Local dialogue is the final fallback.\n");
         return;
     }
 
-    printf("LLM 대사: 활성화됨 | 모델: %s\n",
+    if (apiKey == NULL || apiKey[0] == '\0') {
+        printf("LLM inactive: no verified API key. .\\run_filesoul.cmd can ask for one and test it safely.\n");
+        return;
+    }
+
+    printf("LLM verification pending | model: %s\n",
            model != NULL && model[0] != '\0' ? model : "gpt-4.1-mini");
+    printf("LLM is marked active only after a successful API response is applied to a file dialogue.\n");
 }
 
 #ifdef _WIN32

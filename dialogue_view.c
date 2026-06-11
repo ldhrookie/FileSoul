@@ -351,6 +351,7 @@ static UserChoice showFloatingDialogue(const FileSoul* file, const char* sizeTex
     if (terminalOnly != NULL && strcmp(terminalOnly, "1") == 0) {
         return CHOICE_NONE;
     }
+    showLlmStatus = !isLlmDialogueActive();
 
     if (showLlmStatus) {
         snprintf(message, sizeof(message),
@@ -380,6 +381,18 @@ static UserChoice showFloatingDialogue(const FileSoul* file, const char* sizeTex
                  file->interest);
     }
     snprintf(title, sizeof(title), "%.240s의 메시지", file->name);
+
+    if (showLlmStatus) {
+        char fallbackMessage[1536];
+
+        snprintf(fallbackMessage, sizeof(fallbackMessage),
+                 "LLM test/request did not pass. Local dialogue is the final fallback.\n"
+                 "Status: %.220s\n\n"
+                 "%.1200s",
+                 llmStatus != NULL ? llmStatus : "unknown",
+                 message);
+        snprintf(message, sizeof(message), "%s", fallbackMessage);
+    }
 
     if (!utf8ToWide(message, wideMessage, (int)(sizeof(wideMessage) / sizeof(wideMessage[0]))) ||
         !utf8ToWide(title, wideTitle, (int)(sizeof(wideTitle) / sizeof(wideTitle[0]))) ||
@@ -493,6 +506,10 @@ void showPopupDialoguesLimited(FileNode* head, int maxFiles) {
                getFileMoodName(file->mood),
                getPersonalityName(file->personality));
         printf("크기: %s | 관심도: %.1f\n", sizeText, file->interest);
+        if (!isLlmDialogueActive()) {
+            printf("LLM test/request did not pass. Local dialogue is the final fallback.\n");
+            printf("LLM status before local dialogue: %s\n", getLlmDialogueStatus());
+        }
         printf("\"%s\"\n", file->dialogue);
         printf("대사 생성 상태: %s\n", getLlmDialogueStatus());
 

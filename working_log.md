@@ -1,5 +1,53 @@
 ﻿# FileSoul Working Log
 
+## 2026-06-11 - Gate local dialogue behind real LLM verification failure
+
+- Intent:
+  - Stop treating local dialogue as the normal path before LLM setup is verified.
+  - Run a real OpenAI request immediately after an API key is provided to the launcher.
+  - Warn before printing local dialogue when the LLM test/request did not pass.
+- Important commands:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+  - No-key terminal sample run
+  - Fake-key launcher sample run
+- Changes:
+  - Added launcher-side OpenAI verification using `Invoke-RestMethod` against `/v1/chat/completions`.
+  - If verification fails, the launcher removes the key for that run and sets `FILESOUL_LLM_VERIFICATION_FAILED`.
+  - The C app now reports startup verification failure separately from mere API-key presence.
+  - Dialogue output now prints a test/request failure warning before local fallback dialogue.
+  - Popup dialogue content is prefixed with the same fallback warning when LLM output is not active.
+- Verification:
+  - Warning build succeeded.
+  - No-key sample run showed the fallback warning before the local dialogue.
+  - Fake-key launcher run attempted a real OpenAI request, failed due remote connection failure in this environment, disabled LLM for the run, and showed the verification-failed fallback warning before local dialogue.
+- Notes:
+  - A valid API key and working network are still required to verify the LLM success path.
+  - No real deletion was enabled or exercised.
+
+## 2026-06-11 - Tighten LLM activation status
+
+- Intent:
+  - Show LLM as active only after a successful OpenAI API response is applied to a file dialogue.
+  - Keep local fallback active when no executable API key is available.
+- Important commands:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+  - No-key sample run
+  - Fake-key sample run
+  - Local `config\secret_key` sample run without printing the key
+- Changes:
+  - Added an LLM active flag that is set only after response extraction and `file->dialogue` replacement succeed.
+  - Changed startup messaging from active to verification pending when an API key merely exists.
+  - Preserved API request failures instead of overwriting them with response parsing errors.
+  - Hid API-key fragments in HTTP 401 status messages.
+- Verification:
+  - Warning build succeeded.
+  - No-key run showed inactive local-dialogue status.
+  - Fake-key run showed inactive HTTP 401 status and did not print key fragments.
+  - Local `config\secret_key` was rejected by OpenAI with HTTP 401, so a live success path still needs a valid replacement key entered through the launcher or environment.
+- Notes:
+  - The key pasted in chat should be revoked and replaced because it has been exposed.
+  - No real deletion was enabled or exercised.
+
 ## 2026-06-11 - Add timer-based extra recommendations
 
 - Intent:
