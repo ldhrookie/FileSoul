@@ -514,3 +514,21 @@
   - Empty path scanned the actual current repository folder and listed real files.
 - Notes:
   - No real deletion was enabled or exercised.
+
+## 2026-06-12 - Fast-forward timer recommendations into main
+
+- Intent:
+  - Move the current `feat/timer-recommendations` branch contents onto `main`.
+- Important commands:
+  - `git fetch origin`
+  - `git switch main`
+  - `git merge --ff-only feat/timer-recommendations`
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+- Changes:
+  - Fast-forwarded `main` from `9c16de2` to `1e30f50`, bringing over the feature branch's 3 commits.
+  - Left `main` ahead of `origin/main` by 3 commits; no push was run.
+- Verification:
+  - Fast-forward merge completed without conflicts.
+  - `gcc -Wall -Wextra *.c -o filesoul.exe` succeeded without warnings.
+- Notes:
+  - `filesoul.exe` remains a local ignored build artifact.
