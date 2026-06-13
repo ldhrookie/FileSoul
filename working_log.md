@@ -1,5 +1,26 @@
 ﻿# FileSoul Working Log
 
+## 2026-06-13 - Add clean quit flow
+
+- Intent:
+  - Stop requiring Ctrl+C to finish the program.
+  - Let users quit cleanly from prompts and dialogue choices.
+- Important commands:
+  - `rg -n "askYesNo|askDialogueLimit|askRecommendationLimit|confirmDelete|readFolderPath|fgets|종료|선택|관심도 기준" main.c dialogue_view.c`
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+  - `run_filesoul.cmd -LocalOnly -Terminal` with `q` at path and dialogue prompts
+- Changes:
+  - Added `q`, `quit`, and `exit` handling to main text prompts.
+  - Changed the dialogue view to report when the user requested exit.
+  - Skipped the optional cleanup recommendation prompt after a dialogue exit.
+  - Removed the CMD launcher's forced `pause`.
+- Verification:
+  - Warning build succeeded.
+  - Folder prompt quit exited with code 0.
+  - Dialogue prompt `q` ended the dialogue, skipped the recommendation prompt, printed stats, and exited with code 0.
+- Notes:
+  - Popup mode still has the `종료` button; terminal mode supports both `0` and `q`.
+
 ## 2026-06-13 - Stop generating report.txt
 
 - Intent:

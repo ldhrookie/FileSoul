@@ -28,6 +28,13 @@ static UserChoice readChoice(void) {
         return (UserChoice)5;
     }
 
+    if (buffer[0] == 'q' || buffer[0] == 'Q') {
+        return (UserChoice)0;
+    }
+    if (strncmp(buffer, "quit", 4) == 0 || strncmp(buffer, "exit", 4) == 0) {
+        return (UserChoice)0;
+    }
+
     value = strtol(buffer, &end, 10);
     if (end == buffer) {
         return CHOICE_IGNORE;
@@ -476,7 +483,7 @@ static UserChoice showFloatingDialogue(const FileSoul* file, const char* sizeTex
 #endif
 }
 
-void showPopupDialoguesLimited(FileNode* head, int maxFiles) {
+int showPopupDialoguesLimited(FileNode* head, int maxFiles) {
     FileNode* current = head;
     int shown = 0;
     int timerSeconds = getRecommendationTimerSeconds();
@@ -525,7 +532,7 @@ void showPopupDialoguesLimited(FileNode* head, int maxFiles) {
                 current = current->next;
             }
             printf("남은 파일을 모두 무시했습니다.\n");
-            return;
+            return 0;
         }
 
         if ((int)choice == 6) {
@@ -534,7 +541,7 @@ void showPopupDialoguesLimited(FileNode* head, int maxFiles) {
                 current = current->next;
             }
             printf("남은 파일을 모두 삭제 후보로 등록했습니다.\n");
-            return;
+            return 0;
         }
 
         if ((int)choice == 0) {
@@ -543,7 +550,7 @@ void showPopupDialoguesLimited(FileNode* head, int maxFiles) {
                 current = current->next;
             }
             printf("대화를 종료했습니다. 남은 파일은 모두 무시됩니다.\n");
-            return;
+            return 1;
         }
 
         applyChoice(file, choice);
@@ -553,4 +560,5 @@ void showPopupDialoguesLimited(FileNode* head, int maxFiles) {
         ++shown;
     }
 
+    return 0;
 }

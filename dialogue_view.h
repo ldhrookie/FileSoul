@@ -3,6 +3,6 @@
 
 #include "file_node.h"
 
-void showPopupDialoguesLimited(FileNode* head, int maxFiles);
+int showPopupDialoguesLimited(FileNode* head, int maxFiles);
 
 #endif

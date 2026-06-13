@@ -30,6 +30,16 @@ static void trimNewline(char* text) {
     }
 }
 
+static int isQuitInput(const char* text) {
+    if (text == NULL) {
+        return 0;
+    }
+
+    return equalsIgnoreCase(text, "q") ||
+           equalsIgnoreCase(text, "quit") ||
+           equalsIgnoreCase(text, "exit");
+}
+
 static void addSampleFiles(FileNode** head) {
     appendFileNode(head, createSampleFileNode("homework.c", "c", 3200));
     appendFileNode(head, createSampleFileNode("old_photo.png", "png", 2480000));
@@ -44,6 +54,11 @@ static int askYesNo(const char* prompt) {
     printf("%s", prompt);
     if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
         return 0;
+    }
+
+    trimNewline(buffer);
+    if (isQuitInput(buffer)) {
+        return -1;
     }
 
     return buffer[0] == 'y' || buffer[0] == 'Y';
@@ -61,7 +76,12 @@ static int askDialogueLimit(int totalFiles) {
         return totalFiles < 10 ? totalFiles : 10;
     }
 
-    if (buffer[0] == '\n' || buffer[0] == '\0') {
+    trimNewline(buffer);
+    if (isQuitInput(buffer)) {
+        return -1;
+    }
+
+    if (buffer[0] == '\0') {
         return totalFiles < 10 ? totalFiles : 10;
     }
 
@@ -87,7 +107,12 @@ static int askRecommendationLimit(int totalFiles) {
         return totalFiles < 10 ? totalFiles : 10;
     }
 
-    if (buffer[0] == '\n' || buffer[0] == '\0') {
+    trimNewline(buffer);
+    if (isQuitInput(buffer)) {
+        return -1;
+    }
+
+    if (buffer[0] == '\0') {
         return totalFiles < 10 ? totalFiles : 10;
     }
 
@@ -191,6 +216,10 @@ static int readFolderPath(char* folderPath, int folderPathSize) {
     }
 
     trimNewline(folderPath);
+    if (isQuitInput(folderPath)) {
+        return 0;
+    }
+
     if (folderPath[0] == '\0') {
         snprintf(folderPath, (size_t)folderPathSize, ".");
     }
@@ -203,6 +232,7 @@ int main(void) {
     FileNode* head = NULL;
     int scannedCount;
     int allowRealDelete;
+    int dialogueEnded;
     int dialogueLimit;
     int totalFiles;
 
@@ -218,11 +248,15 @@ int main(void) {
     printLlmSetupStatus();
 
     allowRealDelete = askYesNo("실제 파일 삭제 기능을 사용할까요? [y/N]: ");
+    if (allowRealDelete < 0) {
+        printf("사용자 요청으로 작업을 종료합니다.\n");
+        return 0;
+    }
 
     while (1) {
         if (!readFolderPath(folderPath, sizeof(folderPath))) {
             printf("\n입력이 종료되어 작업을 중단합니다.\n");
-            return 1;
+            return 0;
         }
 
         if (equalsIgnoreCase(folderPath, "sample")) {
@@ -245,13 +279,23 @@ int main(void) {
     shuffleFileList(head);
     printFileList(head);
     dialogueLimit = askDialogueLimit(totalFiles);
-    showPopupDialoguesLimited(head, dialogueLimit);
-    if (askYesNo("관심도 기준 정리 추천 목록을 따로 볼까요? [y/N]: ")) {
+    if (dialogueLimit < 0) {
+        printf("사용자 요청으로 작업을 종료합니다.\n");
+        freeFileList(head);
+        return 0;
+    }
+
+    dialogueEnded = showPopupDialoguesLimited(head, dialogueLimit);
+    if (!dialogueEnded && askYesNo("관심도 기준 정리 추천 목록을 따로 볼까요? [y/N]: ") > 0) {
         int recommendationLimit;
 
         sortFileListByInterest(head);
         recommendationLimit = askRecommendationLimit(totalFiles);
-        printCleanupRecommendations(head, recommendationLimit);
+        if (recommendationLimit < 0) {
+            printf("사용자 요청으로 추천 목록을 건너뜁니다.\n");
+        } else {
+            printCleanupRecommendations(head, recommendationLimit);
+        }
     }
     printStatistics(head);
     printDeletePreview(head);
