@@ -328,6 +328,7 @@ static UserChoice showFloatingDialogue(const FileSoul* file, const char* sizeTex
     wchar_t keepText[32];
     wchar_t deleteText[32];
     wchar_t ignoreText[32];
+    wchar_t exitText[32];
     HMODULE comctl32;
     HMODULE user32;
     typedef HRESULT(WINAPI* TaskDialogIndirectFunction)(const TASKDIALOGCONFIG*, int*, int*, BOOL*);
@@ -340,7 +341,7 @@ static UserChoice showFloatingDialogue(const FileSoul* file, const char* sizeTex
         FARPROC raw;
         MessageBoxWFunction messageBoxW;
     } messageBoxFunction;
-    TASKDIALOG_BUTTON buttons[4];
+    TASKDIALOG_BUTTON buttons[5];
     TASKDIALOGCONFIG config;
     int selectedButton = 104;
     int fallbackResult;
@@ -399,7 +400,8 @@ static UserChoice showFloatingDialogue(const FileSoul* file, const char* sizeTex
         !utf8ToWide("열기", openText, (int)(sizeof(openText) / sizeof(openText[0]))) ||
         !utf8ToWide("보관", keepText, (int)(sizeof(keepText) / sizeof(keepText[0]))) ||
         !utf8ToWide("삭제 후보", deleteText, (int)(sizeof(deleteText) / sizeof(deleteText[0]))) ||
-        !utf8ToWide("무시", ignoreText, (int)(sizeof(ignoreText) / sizeof(ignoreText[0])))) {
+        !utf8ToWide("무시", ignoreText, (int)(sizeof(ignoreText) / sizeof(ignoreText[0]))) ||
+        !utf8ToWide("종료", exitText, (int)(sizeof(exitText) / sizeof(exitText[0])))) {
         return CHOICE_IGNORE;
     }
 
@@ -411,6 +413,8 @@ static UserChoice showFloatingDialogue(const FileSoul* file, const char* sizeTex
     buttons[2].pszButtonText = deleteText;
     buttons[3].nButtonID = 104;
     buttons[3].pszButtonText = ignoreText;
+    buttons[4].nButtonID = 105;
+    buttons[4].pszButtonText = exitText;
 
     memset(&config, 0, sizeof(config));
     config.cbSize = sizeof(config);
@@ -436,6 +440,9 @@ static UserChoice showFloatingDialogue(const FileSoul* file, const char* sizeTex
             case 103:
                 return CHOICE_DELETE_CANDIDATE;
             case 104:
+                return CHOICE_IGNORE;
+            case 105:
+                return (UserChoice)0;
             default:
                 return CHOICE_IGNORE;
             }
@@ -457,7 +464,7 @@ static UserChoice showFloatingDialogue(const FileSoul* file, const char* sizeTex
             if (fallbackResult == IDNO) {
                 return CHOICE_DELETE_CANDIDATE;
             }
-            return CHOICE_IGNORE;
+            return (UserChoice)0;
         }
         FreeLibrary(user32);
     }

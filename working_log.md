@@ -1,5 +1,24 @@
 ﻿# FileSoul Working Log
 
+## 2026-06-13 - Add popup exit button
+
+- Intent:
+  - Fix confusion where terminal `[0] 종료` does not appear during normal Windows popup mode.
+  - Let users end the run directly from the popup.
+- Important commands:
+  - `git status --short --branch`
+  - `rg -n "TASKDIALOG_BUTTON|selectedButton|CHOICE_NONE|readChoice|종료|ignoreText|buttons" dialogue_view.c file_node.h`
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+- Changes:
+  - Added a `종료` button to the Windows TaskDialog popup.
+  - Mapped popup `종료` to the same end-of-dialogue flow as terminal `0`.
+  - Mapped fallback popup cancel/close to end the dialogue instead of silently continuing.
+- Verification:
+  - Warning build succeeded.
+  - Terminal-mode sample run with `0` still ended the dialogue and wrote `report.txt`.
+- Notes:
+  - Normal popup mode now has its own visible exit path instead of relying on terminal choices.
+
 ## 2026-06-13 - Make mood labels feel emotional
 
 - Intent:
