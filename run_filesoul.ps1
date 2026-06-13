@@ -1,6 +1,7 @@
 param(
     [switch]$SkipBuild,
     [switch]$LocalOnly,
+    [switch]$Popup,
     [string]$Model
 )
 
@@ -18,6 +19,8 @@ $hadModel = Test-Path Env:FILESOUL_LLM_MODEL
 $previousModel = $env:FILESOUL_LLM_MODEL
 $hadVerificationFailed = Test-Path Env:FILESOUL_LLM_VERIFICATION_FAILED
 $previousVerificationFailed = $env:FILESOUL_LLM_VERIFICATION_FAILED
+$hadTerminalDialogue = Test-Path Env:FILESOUL_TERMINAL_DIALOGUE
+$previousTerminalDialogue = $env:FILESOUL_TERMINAL_DIALOGUE
 
 function Test-GroqDialogueRequest {
     param(
@@ -98,6 +101,11 @@ try {
         $env:FILESOUL_LLM_MODEL = $Model
     }
 
+    if (-not $Popup) {
+        $env:FILESOUL_TERMINAL_DIALOGUE = "1"
+        Write-Host "Terminal choice mode is enabled. Use -Popup to show Windows popups."
+    }
+
     if (-not $LocalOnly -and -not $env:GROQ_API_KEY) {
         Write-Host "GROQ_API_KEY is not set."
         Write-Host "Enter a Groq API key for LLM dialogue. It is used only for this run and is not saved."
@@ -169,6 +177,13 @@ finally {
     }
     else {
         Remove-Item Env:FILESOUL_LLM_VERIFICATION_FAILED -ErrorAction SilentlyContinue
+    }
+
+    if ($hadTerminalDialogue) {
+        $env:FILESOUL_TERMINAL_DIALOGUE = $previousTerminalDialogue
+    }
+    else {
+        Remove-Item Env:FILESOUL_TERMINAL_DIALOGUE -ErrorAction SilentlyContinue
     }
 
     Pop-Location

@@ -1,5 +1,27 @@
 ﻿# FileSoul Working Log
 
+## 2026-06-13 - Make CMD launcher show terminal choices
+
+- Intent:
+  - Fix the normal `run_filesoul.cmd` path where popup mode could hide all visible choices.
+  - Make `report.txt` generation reachable from the launcher flow.
+- Important commands:
+  - `Get-Content run_filesoul.cmd`
+  - `Get-Content run_filesoul.ps1`
+  - `.\run_filesoul.cmd -LocalOnly -SkipBuild`
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+- Changes:
+  - Added a `-Popup` launcher switch.
+  - Made `run_filesoul.cmd` default to terminal choice mode by setting `FILESOUL_TERMINAL_DIALOGUE=1` unless `-Popup` is passed.
+  - Added a CMD pause after launcher exit so double-click users can read completion or error messages.
+  - Added `FILESOUL_NO_PAUSE=1` as an automation escape hatch for tests.
+- Verification:
+  - `run_filesoul.cmd -LocalOnly` showed the terminal `[0] 종료` choice.
+  - Entering `0` ended the dialogue and wrote `report.txt`.
+  - `Test-Path .\report.txt` returned `True`.
+- Notes:
+  - Use `run_filesoul.cmd -Popup` to opt back into Windows popup choices.
+
 ## 2026-06-13 - Add popup exit button
 
 - Intent:
