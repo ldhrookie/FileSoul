@@ -2,10 +2,6 @@
 #include <string.h>
 #include <time.h>
 
-#ifdef _WIN32
-#include <direct.h>
-#endif
-
 #include "personality.h"
 #include "console_io.h"
 #include "report.h"
@@ -14,19 +10,13 @@
 static FILE* openReportFile(const char* filename) {
     FILE* fp;
 
-#ifdef _WIN32
-    _mkdir("results");
-    _mkdir("results/reports");
-#endif
-
     fp = fopen(filename, "w");
     if (fp != NULL) {
         return fp;
     }
 
     printf("보고서 파일을 열 수 없습니다: %s\n", filename);
-    printf("대신 report.txt에 저장을 시도합니다.\n");
-    return fopen("report.txt", "w");
+    return NULL;
 }
 
 static void formatTimeValue(time_t value, char* buffer, int bufferSize) {
@@ -155,7 +145,7 @@ void writeReport(FileNode* head, const char* filename, const char* scanRoot) {
     time_t now = time(NULL);
 
     if (filename == NULL) {
-        filename = "results/reports/report.txt";
+        filename = "report.txt";
     }
 
     fp = openReportFile(filename);

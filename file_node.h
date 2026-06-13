@@ -33,6 +33,8 @@ typedef enum {
     MOOD_LONELY,
     MOOD_HEAVY,
     MOOD_URGENT,
+    MOOD_CURIOUS,
+    MOOD_LIVELY,
     MOOD_UNKNOWN
 } FileMood;
 
@@ -85,6 +87,7 @@ void appendFileNode(FileNode** head, FileNode* newNode);
 void printFileList(const FileNode* head);
 void freeFileList(FileNode* head);
 void sortFileListByInterest(FileNode* head);
+void shuffleFileList(FileNode* head);
 int countFileNodes(const FileNode* head);
 const char* getChoiceName(UserChoice choice);
 

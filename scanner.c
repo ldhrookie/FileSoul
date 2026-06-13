@@ -9,6 +9,7 @@
 
 #include "scanner.h"
 #include "console_io.h"
+#include "string_utils.h"
 
 void extractExtension(const char* filename, char* extension, int extensionSize) {
     const char* dot;
@@ -30,26 +31,6 @@ void extractExtension(const char* filename, char* extension, int extensionSize) 
 
     strncpy(extension, dot + 1, (size_t)extensionSize - 1U);
     extension[extensionSize - 1] = '\0';
-}
-
-static int equalsIgnoreCase(const char* left, const char* right) {
-    while (left != NULL && right != NULL && *left != '\0' && *right != '\0') {
-        char a = *left;
-        char b = *right;
-        if (a >= 'A' && a <= 'Z') {
-            a = (char)(a - 'A' + 'a');
-        }
-        if (b >= 'A' && b <= 'Z') {
-            b = (char)(b - 'A' + 'a');
-        }
-        if (a != b) {
-            return 0;
-        }
-        ++left;
-        ++right;
-    }
-
-    return left != NULL && right != NULL && *left == '\0' && *right == '\0';
 }
 
 static int endsWithTemporaryMarker(const char* filename) {

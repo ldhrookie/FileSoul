@@ -48,7 +48,7 @@ LLM 없이 실행하려면 `.\run_filesoul.cmd -LocalOnly`를 사용하세요.
 - 관심도 높은 순서의 대화 흐름
 - Windows `TaskDialogIndirect` 기반 플로팅 메시지 팝업과 팝업 내부 행동 선택
 - Common Controls v6 매니페스트를 통한 사용자 정의 팝업 버튼 활성화
-- `OPENAI_API_KEY`가 있을 때 파일 성격, 기분, 상태를 반영하는 LLM 대사 생성
+- `GROQ_API_KEY`가 있을 때 파일 성격, 기분, 상태를 반영하는 LLM 대사 생성
 - LLM 연결 실패 또는 API 키 미설정 시 성격 기반 로컬 대사 자동 사용
 - 같은 성격이어도 파일명, 확장자, 크기, 수정 시각에 따라 달라지는 로컬 대사
 - Windows 콘솔에 UTF-16으로 직접 출력하여 PowerShell 코드페이지와 무관한 한글 표시
@@ -59,7 +59,6 @@ LLM 없이 실행하려면 `.\run_filesoul.cmd -LocalOnly`를 사용하세요.
 - 보호 파일 차단과 차단 사유 표시
 - 확장자별 통계
 - 큰 폴더 데모를 위한 대화 개수 제한
-- `results/reports/report.txt` 보고서 생성
 
 ## 삭제 안전 정책
 
@@ -73,14 +72,9 @@ LLM 없이 실행하려면 `.\run_filesoul.cmd -LocalOnly`를 사용하세요.
 6. 파일이 스캔한 폴더 안에 있습니다.
 
 실행 파일, 스크립트, 저장소 파일, 소스 파일, 보고서, 폴더, `..`가 포함된 경로, 스캔 폴더 밖 파일은 보호됩니다.
-삭제가 차단되면 차단 사유가 `FileSoul.deleteMessage`에 저장되고 터미널과 보고서에 출력됩니다.
+삭제가 차단되면 차단 사유가 `FileSoul.deleteMessage`에 저장되고 터미널에 출력됩니다.
 
 실제 삭제 테스트는 `tests/delete_demo/` 같은 임시 폴더에서만 진행해야 합니다. 프로젝트 소스 파일이나 문서 폴더를 대상으로 실제 삭제 테스트를 하지 마세요.
-
-## 보고서
-
-보고서에는 스캔 요약, 삭제 결과, 확장자별 통계, 삭제 메시지, 파일별 상세 정보가 포함됩니다.
-`results/reports/report.txt`를 열 수 없으면 `report.txt`에 저장을 시도합니다.
 
 ## 한글 출력
 
@@ -102,13 +96,20 @@ PowerShell 코드페이지가 CP949여도 한글이 정상 표시됩니다.
 직접 환경 변수로 설정하려면 같은 PowerShell 창에서 설정한 뒤 프로그램을 실행해야 합니다.
 
 ```powershell
-$env:OPENAI_API_KEY="your-api-key"
+$env:GROQ_API_KEY="your-api-key"
 .\filesoul.exe
 ```
 
-기본 모델은 `gpt-4.1-mini`이며 `FILESOUL_LLM_MODEL` 환경 변수로 변경할 수 있습니다.
+기본 모델은 `llama-3.1-8b-instant`이며 `FILESOUL_LLM_MODEL` 환경 변수로 변경할 수 있습니다.
 API 키가 없거나 요청이 실패하면 프로그램은 멈추지 않고 기존 로컬 대사를 사용합니다.
 API 키가 있는데도 로컬 대사가 나오면 팝업과 첫 대화 상태의 `LLM API HTTP ...` 메시지를 확인하세요.
-대사 생성은 OpenAI Chat Completions API를 사용하며 파일 내용과 전체 경로는 보내지 않습니다.
+대사 생성은 Groq Chat Completions API를 사용하며 파일 내용과 전체 경로는 보내지 않습니다.
 응답 파싱에 실패하면 `llm_debug_response.json`에 API 응답이 저장됩니다. 이 파일에는 API 키가 들어가지 않습니다.
 자동 테스트나 팝업을 사용할 수 없는 환경에서는 `FILESOUL_TERMINAL_DIALOGUE=1`로 기존 터미널 선택을 사용할 수 있습니다.
+런처에서는 `.\run_filesoul.cmd -Terminal`을 사용하면 같은 터미널 선택 모드로 실행됩니다.
+
+## Recommendation Timer
+
+After the initial dialogue limit is reached, FileSoul shows a small always-on-top timer window on the monitor instead of drawing the timer in the terminal. Each time the timer expires, the next file in the sorted recommendation list is shown.
+
+Set `FILESOUL_RECOMMEND_TIMER_SECONDS` to control the interval. Use `0` to skip waiting during automated runs.

@@ -16,8 +16,7 @@
 12. If real deletion is enabled, require exact `DELETE` confirmation.
 13. Delete only candidates that pass protection checks; store a detailed block reason when deletion is refused.
 14. Print updated statistics.
-15. Write `results/reports/report.txt`.
-16. Free the linked list.
+15. Free the linked list.
 
 ## Core Data Structures
 
@@ -30,7 +29,7 @@
 - `scanner.c/.h`: Windows folder scan and scan filters
 - `console_io.c/.h`: UTF-8 formatting and direct UTF-16 Windows console output
 - `personality.c/.h`: type, mood, personality, dialogue, interest score
-- `llm_dialogue.c/.h`: OpenAI Chat Completions dialogue generation with local-dialogue fallback
+- `llm_dialogue.c/.h`: Groq Chat Completions dialogue generation with local-dialogue fallback
 - `dialogue_view.c/.h`: floating message choices, terminal fallback, and batch actions
 - `delete_actions.c/.h`: guarded deletion, protected file checks, delete preview, block reasons
 - `stats.c/.h`: counts, sizes, sorted extension statistics, size formatting

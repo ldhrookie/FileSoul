@@ -5,5 +5,6 @@
 
 int generateLlmDialogue(FileSoul* file);
 const char* getLlmDialogueStatus(void);
+int isLlmDialogueActive(void);
 
 #endif

@@ -1,5 +1,257 @@
 ﻿# FileSoul Working Log
 
+## 2026-06-13 - Allow quitting during recommendation timer
+
+- Intent:
+  - Keep popup mode active while allowing terminal input to stop the wait timer.
+  - Make sure launcher rebuilds include `dialogue_view.c`.
+- Important commands:
+  - `rg -n "waitForRecommendationTimer|sleepOneSecond|shown >= maxFiles|timer" dialogue_view.c run_filesoul.ps1`
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+  - `run_filesoul.cmd -LocalOnly -Terminal` sample run
+- Changes:
+  - Added nonblocking Windows key checks during the recommendation timer.
+  - During timer wait, `q`, `0`, or Esc exits the dialogue and ignores remaining files.
+  - Added a terminal instruction before timer wait.
+  - Changed the launcher build step to enumerate root `.c` files and pass them explicitly to `gcc`.
+- Verification:
+  - Warning build succeeded.
+  - Launcher printed `Compiling 11 C source files`, confirming it rebuilt from current root C files.
+  - Terminal-mode smoke run still exited cleanly with `q`.
+- Notes:
+  - Timer key detection depends on real console keyboard input; piped input cannot fully simulate the popup-mode timer interaction.
+
+## 2026-06-13 - Add clean quit flow
+
+- Intent:
+  - Stop requiring Ctrl+C to finish the program.
+  - Let users quit cleanly from prompts and dialogue choices.
+- Important commands:
+  - `rg -n "askYesNo|askDialogueLimit|askRecommendationLimit|confirmDelete|readFolderPath|fgets|종료|선택|관심도 기준" main.c dialogue_view.c`
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+  - `run_filesoul.cmd -LocalOnly -Terminal` with `q` at path and dialogue prompts
+- Changes:
+  - Added `q`, `quit`, and `exit` handling to main text prompts.
+  - Changed the dialogue view to report when the user requested exit.
+  - Skipped the optional cleanup recommendation prompt after a dialogue exit.
+  - Removed the CMD launcher's forced `pause`.
+- Verification:
+  - Warning build succeeded.
+  - Folder prompt quit exited with code 0.
+  - Dialogue prompt `q` ended the dialogue, skipped the recommendation prompt, printed stats, and exited with code 0.
+- Notes:
+  - Popup mode still has the `종료` button; terminal mode supports both `0` and `q`.
+
+## 2026-06-13 - Stop generating report.txt
+
+- Intent:
+  - Remove `report.txt` from the normal FileSoul completion flow.
+  - Keep final results in terminal output only.
+- Important commands:
+  - `rg -n "writeReport|report.txt|보고서|Report|reports" main.c report.c report.h README.md docs working_log.md .gitignore`
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+  - `run_filesoul.cmd -LocalOnly -Terminal` sample run
+- Changes:
+  - Removed the `writeReport(...)` call from `main.c`.
+  - Removed the now-unused `report.h` include from `main.c`.
+  - Removed current README and architecture instructions that said `report.txt` is generated.
+- Verification:
+  - Warning build succeeded.
+  - Sample launcher run completed without printing `보고서 저장 완료`.
+  - `Test-Path .\report.txt` returned `False`.
+- Notes:
+  - The unused report module files are still present, but the app no longer calls them in the active flow.
+
+## 2026-06-13 - Add terminal launcher option without removing popups
+
+- Intent:
+  - Keep the normal `run_filesoul.cmd` popup flow intact.
+  - Add an explicit terminal-choice mode for environments where popups are not usable.
+- Important commands:
+  - `Get-Content run_filesoul.cmd`
+  - `Get-Content run_filesoul.ps1`
+  - `.\run_filesoul.cmd -LocalOnly -SkipBuild`
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+- Changes:
+  - Added a `-Terminal` launcher switch.
+  - `run_filesoul.cmd` now keeps popup mode by default.
+  - `run_filesoul.cmd -Terminal` sets `FILESOUL_TERMINAL_DIALOGUE=1` for visible terminal choices.
+  - Added a CMD pause after launcher exit so double-click users can read completion or error messages.
+  - Added `FILESOUL_NO_PAUSE=1` as an automation escape hatch for tests.
+- Verification:
+  - `run_filesoul.cmd -LocalOnly -Terminal` showed the terminal `[0] 종료` choice.
+  - Entering `0` ended the dialogue and wrote `report.txt`.
+  - `Test-Path .\report.txt` returned `True`.
+- Notes:
+  - Popup mode remains the default launcher behavior.
+
+## 2026-06-13 - Add popup exit button
+
+- Intent:
+  - Fix confusion where terminal `[0] 종료` does not appear during normal Windows popup mode.
+  - Let users end the run directly from the popup.
+- Important commands:
+  - `git status --short --branch`
+  - `rg -n "TASKDIALOG_BUTTON|selectedButton|CHOICE_NONE|readChoice|종료|ignoreText|buttons" dialogue_view.c file_node.h`
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+- Changes:
+  - Added a `종료` button to the Windows TaskDialog popup.
+  - Mapped popup `종료` to the same end-of-dialogue flow as terminal `0`.
+  - Mapped fallback popup cancel/close to end the dialogue instead of silently continuing.
+- Verification:
+  - Warning build succeeded.
+  - Terminal-mode sample run with `0` still ended the dialogue and wrote `report.txt`.
+- Notes:
+  - Normal popup mode now has its own visible exit path instead of relying on terminal choices.
+
+## 2026-06-13 - Make mood labels feel emotional
+
+- Intent:
+  - Replace status-like mood labels with more realistic emotional labels.
+  - Keep the existing file personality and safety behavior unchanged.
+- Important commands:
+  - `git fetch origin`
+  - `git status --short --branch`
+  - `rg -n "MOOD_|getFileMood|급함|외로움|궁금함|활기참|평온함|무거움" ...`
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+- Changes:
+  - Changed visible mood names from `평온함`, `외로움`, `무거움`, `급함`, `궁금함`, `활기참` to `편안함`, `쓸쓸함`, `버거움`, `불안함`, `궁금함`, `들뜸`.
+  - Left the internal mood enum and guarded deletion behavior unchanged.
+- Verification:
+  - Warning build succeeded.
+  - Sample terminal-mode run showed `불안함`, `편안함`, and `궁금함` in place of the older status-like labels.
+- Notes:
+  - `MOOD_URGENT` still exists internally, but it is now presented to users as `불안함`.
+
+## 2026-06-13 - Write final report to root report.txt
+
+- Intent:
+  - Make the final FileSoul result appear directly as `report.txt`.
+  - Explain the current file personality assignment behavior.
+- Important commands:
+  - `git fetch origin`
+  - `git status --short --branch`
+  - `rg -n "results/reports/report.txt|report.txt|writeReport" ...`
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+- Changes:
+  - Changed the main flow to write `report.txt` at the repository root.
+  - Changed `writeReport`'s default output from `results/reports/report.txt` to `report.txt`.
+  - Removed report-directory creation from the report writer.
+  - Updated README and architecture notes to describe the new report location.
+- Verification:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe` succeeded without warnings.
+  - Sample terminal-mode run completed without enabling real deletion.
+  - The sample run printed `보고서 저장 완료: report.txt` and `Test-Path .\report.txt` returned `True`.
+- Notes:
+  - Work was applied directly on `main` per user request.
+  - `report.txt` remains ignored as a generated runtime report.
+
+## 2026-06-11 - Explain startup LLM HTTP 429
+
+- Intent:
+  - Explain the user's `LLM verification failed: HTTP 429` startup output.
+- Important commands:
+  - `rg -n "LLM verification|startup API verification|HTTP 429|Too Many Requests|disabled for this run|verify" -S .`
+  - `Get-Content run_filesoul.ps1`
+- Changes:
+  - No source code changes.
+  - Confirmed the launcher sends a real `/v1/chat/completions` verification request before starting FileSoul.
+  - Confirmed failed verification removes `OPENAI_API_KEY` for that run and sets `FILESOUL_LLM_VERIFICATION_FAILED`.
+- Verification:
+  - The reported HTTP 429 means OpenAI received the key-backed request but rejected it for quota/rate-limit reasons.
+- Notes:
+  - A new key from the same organization will still fail if the organization has no usable quota or is rate-limited.
+
+## 2026-06-11 - Switch LLM provider from OpenAI to Groq
+
+- Intent:
+  - Replace the paid OpenAI API path with Groq's OpenAI-compatible Chat Completions API.
+- Important commands:
+  - `rg -n "OpenAI|OPENAI|openai|api.openai.com|gpt-4.1-mini|GROQ|Groq" -S main.c llm_dialogue.c run_filesoul.ps1 README.md docs\architecture.md`
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+- Changes:
+  - Changed launcher API key handling from `OPENAI_API_KEY` to `GROQ_API_KEY`.
+  - Changed launcher verification to `https://api.groq.com/openai/v1/chat/completions`.
+  - Changed the C WinHTTP client host/path to `api.groq.com` and `/openai/v1/chat/completions`.
+  - Changed the default model to `llama-3.1-8b-instant`.
+  - Updated current README and architecture references to Groq.
+- Verification:
+  - Warning build succeeded.
+  - Current runtime files no longer reference the OpenAI host, OpenAI API key, or `gpt-4.1-mini`.
+- Notes:
+  - A real Groq success path still requires the user to enter a valid `GROQ_API_KEY`.
+
+## 2026-06-11 - Gate local dialogue behind real LLM verification failure
+
+- Intent:
+  - Stop treating local dialogue as the normal path before LLM setup is verified.
+  - Run a real OpenAI request immediately after an API key is provided to the launcher.
+  - Warn before printing local dialogue when the LLM test/request did not pass.
+- Important commands:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+  - No-key terminal sample run
+  - Fake-key launcher sample run
+- Changes:
+  - Added launcher-side OpenAI verification using `Invoke-RestMethod` against `/v1/chat/completions`.
+  - If verification fails, the launcher removes the key for that run and sets `FILESOUL_LLM_VERIFICATION_FAILED`.
+  - The C app now reports startup verification failure separately from mere API-key presence.
+  - Dialogue output now prints a test/request failure warning before local fallback dialogue.
+  - Popup dialogue content is prefixed with the same fallback warning when LLM output is not active.
+- Verification:
+  - Warning build succeeded.
+  - No-key sample run showed the fallback warning before the local dialogue.
+  - Fake-key launcher run attempted a real OpenAI request, failed due remote connection failure in this environment, disabled LLM for the run, and showed the verification-failed fallback warning before local dialogue.
+- Notes:
+  - A valid API key and working network are still required to verify the LLM success path.
+  - No real deletion was enabled or exercised.
+
+## 2026-06-11 - Tighten LLM activation status
+
+- Intent:
+  - Show LLM as active only after a successful OpenAI API response is applied to a file dialogue.
+  - Keep local fallback active when no executable API key is available.
+- Important commands:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+  - No-key sample run
+  - Fake-key sample run
+  - Local `config\secret_key` sample run without printing the key
+- Changes:
+  - Added an LLM active flag that is set only after response extraction and `file->dialogue` replacement succeed.
+  - Changed startup messaging from active to verification pending when an API key merely exists.
+  - Preserved API request failures instead of overwriting them with response parsing errors.
+  - Hid API-key fragments in HTTP 401 status messages.
+- Verification:
+  - Warning build succeeded.
+  - No-key run showed inactive local-dialogue status.
+  - Fake-key run showed inactive HTTP 401 status and did not print key fragments.
+  - Local `config\secret_key` was rejected by OpenAI with HTTP 401, so a live success path still needs a valid replacement key entered through the launcher or environment.
+- Notes:
+  - The key pasted in chat should be revoked and replaced because it has been exposed.
+  - No real deletion was enabled or exercised.
+
+## 2026-06-11 - Add timer-based extra recommendations
+
+- Intent:
+  - Show a timer after the initial recommendation limit.
+  - Recommend one additional file each time the timer finishes.
+- Important commands:
+  - `git fetch origin`
+  - `git checkout -b feat/timer-recommendations`
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+  - Sample runs with `FILESOUL_TERMINAL_DIALOGUE=1` and `FILESOUL_RECOMMEND_TIMER_SECONDS=0` / `1`
+- Changes:
+  - Clarified that the entered dialogue count is the immediate recommendation count.
+  - Added a monitor overlay recommendation timer in `dialogue_view.c`.
+  - Changed dialogue iteration so the initial limit no longer ignores the rest of the files; remaining files are shown one at a time after timer expiry.
+  - Added `FILESOUL_RECOMMEND_TIMER_SECONDS` to configure the timer interval, with `0` available for automated runs.
+  - Documented the timer behavior in README and the implementation plan.
+- Verification:
+  - Warning build succeeded.
+  - Sample run with an initial limit of 3 showed the first three files immediately, then recommended the fourth and fifth files after timer completion.
+  - A 1-second timer sample run no longer printed countdown text in the terminal.
+- Notes:
+  - No real deletion was enabled or exercised.
+
 ## 2026-06-01 16:02 - Update from GitHub and prepare integration
 
 - Intent:
@@ -408,3 +660,77 @@
   - Empty path scanned the actual current repository folder and listed real files.
 - Notes:
   - No real deletion was enabled or exercised.
+
+## 2026-06-12 - Fast-forward timer recommendations into main
+
+- Intent:
+  - Move the current `feat/timer-recommendations` branch contents onto `main`.
+- Important commands:
+  - `git fetch origin`
+  - `git switch main`
+  - `git merge --ff-only feat/timer-recommendations`
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+- Changes:
+  - Fast-forwarded `main` from `9c16de2` to `1e30f50`, bringing over the feature branch's 3 commits.
+  - Left `main` ahead of `origin/main` by 3 commits; no push was run.
+- Verification:
+  - Fast-forward merge completed without conflicts.
+  - `gcc -Wall -Wextra *.c -o filesoul.exe` succeeded without warnings.
+- Notes:
+  - `filesoul.exe` remains a local ignored build artifact.
+
+## 2026-06-12 - Review duplicate or unnecessary feature surface
+
+- Intent:
+  - Identify features or files that may be unnecessary, duplicated, or confusing in the current `main` branch.
+- Important commands:
+  - `rg --files`
+  - `rg -n "showPopupDialogues|generateLlmDialogue|shouldSkipFile|isProtectedFile" ...`
+  - `git ls-files src filesoul_new_check.exe llm_debug_response.json filesoul.exe results`
+- Changes:
+  - No code changes were made.
+- Verification:
+  - Confirmed active build remains root-level C files.
+  - Confirmed `src/` is tracked but not part of the active build.
+  - Confirmed local executables and LLM debug response are ignored artifacts, not tracked files.
+- Notes:
+  - Cleanup candidates are `src/` preparation code, unused `showPopupDialogues` wrapper, duplicated case-insensitive helpers, and overlapping scan/delete protection lists.
+
+## 2026-06-12 - Trim small duplicates and diversify file moods
+
+- Intent:
+  - Remove low-risk duplicate code and make recommendations feel less dominated by lonely files.
+- Important commands:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+  - Sample terminal-mode smoke run with `FILESOUL_TERMINAL_DIALOGUE=1`
+- Changes:
+  - Added `string_utils.c/h` for shared case-insensitive string comparison.
+  - Removed duplicate `equalsIgnoreCase` implementations from `main.c`, `scanner.c`, `delete_actions.c`, and type detection in `personality.c`.
+  - Removed the unused `showPopupDialogues` wrapper and kept `showPopupDialoguesLimited` as the active dialogue entry point.
+  - Added `MOOD_CURIOUS` and `MOOD_LIVELY`.
+  - Changed mood selection so old files are distributed across lonely, curious, heavy, and calm instead of always becoming lonely.
+  - Gave images and archives more curious/lively moods when they are not urgent or heavy.
+- Verification:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe` succeeded without warnings.
+  - Sample run showed mixed moods: urgent, lively, and calm.
+- Notes:
+  - The tracked `src/` preparation folder was left in place because repository guidance says it is a future cleanup area, not part of the active build.
+
+## 2026-06-12 - Randomize main recommendations and separate cleanup suggestions
+
+- Intent:
+  - Make FileSoul introduce random files first instead of always leading with files that look most cleanup-worthy.
+  - Keep cleanup recommendations optional and separate from the main dialogue flow.
+- Important commands:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+  - Sample terminal-mode smoke run with optional cleanup suggestions enabled
+- Changes:
+  - Added `shuffleFileList` to randomize the main file dialogue order after personality assignment.
+  - Changed `main.c` to shuffle before printing and dialogue instead of sorting by interest first.
+  - Added an optional prompt for viewing cleanup recommendations after the random dialogue flow.
+  - Added `printCleanupRecommendations`, which shows interest-ranked suggestions without automatically marking delete candidates.
+- Verification:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe` succeeded without warnings.
+  - Sample run showed a lower-interest file first in the main dialogue and then displayed an optional interest-ranked cleanup list.
+- Notes:
+  - Guarded deletion behavior is unchanged; files are still deleted only after explicit delete-candidate selection, preview, and `DELETE` confirmation.

@@ -9,26 +9,7 @@
 #include "delete_actions.h"
 #include "console_io.h"
 #include "stats.h"
-
-static int equalsIgnoreCase(const char* left, const char* right) {
-    while (left != NULL && right != NULL && *left != '\0' && *right != '\0') {
-        char a = *left;
-        char b = *right;
-        if (a >= 'A' && a <= 'Z') {
-            a = (char)(a - 'A' + 'a');
-        }
-        if (b >= 'A' && b <= 'Z') {
-            b = (char)(b - 'A' + 'a');
-        }
-        if (a != b) {
-            return 0;
-        }
-        ++left;
-        ++right;
-    }
-
-    return left != NULL && right != NULL && *left == '\0' && *right == '\0';
-}
+#include "string_utils.h"
 
 static int containsText(const char* text, const char* pattern) {
     return text != NULL && pattern != NULL && strstr(text, pattern) != NULL;
@@ -243,6 +224,43 @@ int deleteCandidateFiles(FileNode* head, const char* scanRoot) {
     }
 
     return deleted;
+}
+
+void printCleanupRecommendations(const FileNode* head, int maxFiles) {
+    int shown = 0;
+    char sizeText[64];
+
+    printf("\n===== 선택 정리 추천 =====\n");
+    printf("관심도가 높은 파일부터 보여줍니다. 삭제 후보는 여기서 자동 등록되지 않습니다.\n");
+
+    if (maxFiles <= 0) {
+        maxFiles = 10;
+    }
+
+    while (head != NULL && shown < maxFiles) {
+        const FileSoul* file = &head->data;
+        char reason[MAX_DELETE_MESSAGE_LENGTH];
+
+        formatSize(file->size, sizeText, sizeof(sizeText));
+        printf("%d. %s (%s, 관심도 %.1f, %s)",
+               shown + 1,
+               file->name,
+               sizeText,
+               file->interest,
+               getChoiceName(file->choice));
+        if (isProtectedFile(file)) {
+            getProtectedFileReason(file, reason, sizeof(reason));
+            printf(" [보호됨] %s", reason);
+        }
+        printf("\n");
+
+        ++shown;
+        head = head->next;
+    }
+
+    if (shown == 0) {
+        printf("추천할 파일이 없습니다.\n");
+    }
 }
 
 void printDeletePreview(const FileNode* head) {

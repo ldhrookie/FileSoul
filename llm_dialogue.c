@@ -16,6 +16,8 @@
 
 static char llmStatus[192] = "LLM 대사를 아직 요청하지 않았습니다.";
 
+static int llmDialogueActive = 0;
+
 static void setStatus(const char* status) {
     if (status != NULL) {
         snprintf(llmStatus, sizeof(llmStatus), "%s", status);
@@ -24,6 +26,10 @@ static void setStatus(const char* status) {
 
 const char* getLlmDialogueStatus(void) {
     return llmStatus;
+}
+
+int isLlmDialogueActive(void) {
+    return llmDialogueActive;
 }
 
 static int appendText(char* destination, size_t capacity, size_t* length, const char* text) {
@@ -382,9 +388,9 @@ static int requestDialogue(const char* apiKey, const char* body, char* response,
     }
     api.setTimeouts(session, 5000, 5000, 15000, 30000);
 
-    connection = api.connect(session, L"api.openai.com", INTERNET_DEFAULT_HTTPS_PORT, 0);
+    connection = api.connect(session, L"api.groq.com", INTERNET_DEFAULT_HTTPS_PORT, 0);
     request = connection != NULL
-                  ? api.openRequest(connection, L"POST", L"/v1/chat/completions", NULL,
+                  ? api.openRequest(connection, L"POST", L"/openai/v1/chat/completions", NULL,
                                     WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES,
                                     WINHTTP_FLAG_SECURE)
                   : NULL;
@@ -433,7 +439,9 @@ static int requestDialogue(const char* apiKey, const char* body, char* response,
             (statusCode < 200 || statusCode >= 300)) {
             char errorMessage[256];
 
-            if (extractErrorMessage(response, errorMessage, sizeof(errorMessage))) {
+            if (statusCode == 401) {
+                setStatus("LLM verification failed: API key was rejected by Groq (HTTP 401); local dialogue is the final fallback.");
+            } else if (extractErrorMessage(response, errorMessage, sizeof(errorMessage))) {
                 snprintf(llmStatus, sizeof(llmStatus),
                          "LLM API HTTP %lu: %.120s",
                          (unsigned long)statusCode, errorMessage);
@@ -464,24 +472,39 @@ cleanup:
 int generateLlmDialogue(FileSoul* file) {
     const char* apiKey;
     const char* model;
+    const char* verificationFailed;
     char request[LLM_REQUEST_CAPACITY];
     char response[LLM_RESPONSE_CAPACITY];
     char dialogue[MAX_DIALOGUE_LENGTH];
+
+    response[0] = '\0';
+    dialogue[0] = '\0';
+    llmDialogueActive = 0;
 
     if (file == NULL) {
         setStatus("LLM 대사를 만들 파일 정보가 없습니다.");
         return 0;
     }
 
-    apiKey = getenv("OPENAI_API_KEY");
+    verificationFailed = getenv("FILESOUL_LLM_VERIFICATION_FAILED");
+    if (verificationFailed != NULL && verificationFailed[0] != '\0') {
+        setStatus("LLM verification failed before launch; local dialogue is the final fallback.");
+        return 0;
+    }
+
+    apiKey = getenv("GROQ_API_KEY");
     if (apiKey == NULL || apiKey[0] == '\0') {
-        setStatus("OPENAI_API_KEY가 없어 성격 기반 로컬 대사를 사용합니다.");
+        setStatus("LLM inactive: GROQ_API_KEY is not set; local dialogue is the final fallback.");
         return 0;
     }
 
     model = getenv("FILESOUL_LLM_MODEL");
     if (model == NULL || model[0] == '\0') {
+<<<<<<< HEAD
         model = "존재하지 않음";
+=======
+        model = "llama-3.1-8b-instant";
+>>>>>>> 37e70ad358c14a1fc4af3a66394c4a8f91d65ef8
     }
 
     if (!buildRequest(file, model, request, sizeof(request))) {
@@ -490,8 +513,11 @@ int generateLlmDialogue(FileSoul* file) {
     }
 
 #ifdef _WIN32
-    if (!requestDialogue(apiKey, request, response, sizeof(response)) ||
-        !extractOutputText(response, dialogue, sizeof(dialogue))) {
+    if (!requestDialogue(apiKey, request, response, sizeof(response))) {
+        return 0;
+    }
+
+    if (!extractOutputText(response, dialogue, sizeof(dialogue))) {
         if (strstr(getLlmDialogueStatus(), "로컬 대사") == NULL) {
             if (strstr(response, "\"choices\"") != NULL) {
                 setStatus("LLM 응답에 choices는 있지만 대사 텍스트를 찾지 못했습니다. llm_debug_response.json을 확인하세요.");
@@ -509,6 +535,8 @@ int generateLlmDialogue(FileSoul* file) {
 
     snprintf(file->dialogue, sizeof(file->dialogue), "%s", dialogue);
     setStatus("LLM이 파일 성격과 상태를 반영한 대사를 만들었습니다.");
+    llmDialogueActive = 1;
+    setStatus("LLM active: API response was applied to this file dialogue.");
     return 1;
 #else
     (void)request;

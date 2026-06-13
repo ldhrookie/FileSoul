@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -12,9 +13,9 @@
 #include "dialogue_view.h"
 #include "file_node.h"
 #include "personality.h"
-#include "report.h"
 #include "scanner.h"
 #include "stats.h"
+#include "string_utils.h"
 
 static void trimNewline(char* text) {
     size_t length;
@@ -29,33 +30,22 @@ static void trimNewline(char* text) {
     }
 }
 
+static int isQuitInput(const char* text) {
+    if (text == NULL) {
+        return 0;
+    }
+
+    return equalsIgnoreCase(text, "q") ||
+           equalsIgnoreCase(text, "quit") ||
+           equalsIgnoreCase(text, "exit");
+}
+
 static void addSampleFiles(FileNode** head) {
     appendFileNode(head, createSampleFileNode("homework.c", "c", 3200));
     appendFileNode(head, createSampleFileNode("old_photo.png", "png", 2480000));
     appendFileNode(head, createSampleFileNode("mysterious.tmp", "tmp", 800));
     appendFileNode(head, createSampleFileNode("final_report.docx", "docx", 145000));
     appendFileNode(head, createSampleFileNode("game.exe", "exe", 7300000));
-}
-
-static int equalsIgnoreCase(const char* left, const char* right) {
-    while (left != NULL && right != NULL && *left != '\0' && *right != '\0') {
-        char a = *left;
-        char b = *right;
-
-        if (a >= 'A' && a <= 'Z') {
-            a = (char)(a - 'A' + 'a');
-        }
-        if (b >= 'A' && b <= 'Z') {
-            b = (char)(b - 'A' + 'a');
-        }
-        if (a != b) {
-            return 0;
-        }
-        ++left;
-        ++right;
-    }
-
-    return left != NULL && right != NULL && *left == '\0' && *right == '\0';
 }
 
 static int askYesNo(const char* prompt) {
@@ -66,6 +56,11 @@ static int askYesNo(const char* prompt) {
         return 0;
     }
 
+    trimNewline(buffer);
+    if (isQuitInput(buffer)) {
+        return -1;
+    }
+
     return buffer[0] == 'y' || buffer[0] == 'Y';
 }
 
@@ -74,12 +69,50 @@ static int askDialogueLimit(int totalFiles) {
     long value;
     char* end;
 
+    printf("처음 바로 추천할 파일 개수입니다. 남은 파일은 타이머가 끝날 때마다 1개씩 추가 추천됩니다.\n");
+
     printf("대화할 파일 개수를 입력하세요. 빈 입력은 10개입니다: ");
     if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
         return totalFiles < 10 ? totalFiles : 10;
     }
 
-    if (buffer[0] == '\n' || buffer[0] == '\0') {
+    trimNewline(buffer);
+    if (isQuitInput(buffer)) {
+        return -1;
+    }
+
+    if (buffer[0] == '\0') {
+        return totalFiles < 10 ? totalFiles : 10;
+    }
+
+    value = strtol(buffer, &end, 10);
+    if (end == buffer || value <= 0) {
+        value = 10;
+    }
+
+    if (value > totalFiles) {
+        value = totalFiles;
+    }
+
+    return (int)value;
+}
+
+static int askRecommendationLimit(int totalFiles) {
+    char buffer[32];
+    long value;
+    char* end;
+
+    printf("정리 추천 목록에서 볼 파일 개수를 입력하세요. 빈 입력은 10개입니다: ");
+    if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
+        return totalFiles < 10 ? totalFiles : 10;
+    }
+
+    trimNewline(buffer);
+    if (isQuitInput(buffer)) {
+        return -1;
+    }
+
+    if (buffer[0] == '\0') {
         return totalFiles < 10 ? totalFiles : 10;
     }
 
@@ -108,16 +141,23 @@ static int confirmDelete(void) {
 }
 
 static void printLlmSetupStatus(void) {
-    const char* apiKey = getenv("OPENAI_API_KEY");
+    const char* apiKey = getenv("GROQ_API_KEY");
     const char* model = getenv("FILESOUL_LLM_MODEL");
+    const char* verificationFailed = getenv("FILESOUL_LLM_VERIFICATION_FAILED");
 
-    if (apiKey == NULL || apiKey[0] == '\0') {
-        printf("LLM 대사: 비활성화됨. .\\run_filesoul.cmd로 실행하면 API 키를 안전하게 입력할 수 있습니다.\n");
+    if (verificationFailed != NULL && verificationFailed[0] != '\0') {
+        printf("LLM inactive: startup API verification failed. Local dialogue is the final fallback.\n");
         return;
     }
 
-    printf("LLM 대사: 활성화됨 | 모델: %s\n",
-           model != NULL && model[0] != '\0' ? model : "gpt-4.1-mini");
+    if (apiKey == NULL || apiKey[0] == '\0') {
+        printf("LLM inactive: no verified Groq API key. .\\run_filesoul.cmd can ask for one and test it safely.\n");
+        return;
+    }
+
+    printf("LLM verification pending | model: %s\n",
+           model != NULL && model[0] != '\0' ? model : "llama-3.1-8b-instant");
+    printf("LLM is marked active only after a successful API response is applied to a file dialogue.\n");
 }
 
 #ifdef _WIN32
@@ -176,6 +216,10 @@ static int readFolderPath(char* folderPath, int folderPathSize) {
     }
 
     trimNewline(folderPath);
+    if (isQuitInput(folderPath)) {
+        return 0;
+    }
+
     if (folderPath[0] == '\0') {
         snprintf(folderPath, (size_t)folderPathSize, ".");
     }
@@ -187,32 +231,37 @@ int main(void) {
     char folderPath[MAX_PATH_LENGTH];
     FileNode* head = NULL;
     int scannedCount;
-    int sampleMode = 0;
     int allowRealDelete;
+    int dialogueEnded;
     int dialogueLimit;
+    int totalFiles;
 
     setlocale(LC_ALL, "");
 #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
 #endif
+    srand((unsigned int)time(NULL));
 
     printf("FileSoul - 파일들의 목소리\n");
     printf("주의: 실제 삭제는 기본적으로 꺼져 있으며, DELETE 확인 후에만 실행됩니다.\n");
     printLlmSetupStatus();
 
     allowRealDelete = askYesNo("실제 파일 삭제 기능을 사용할까요? [y/N]: ");
+    if (allowRealDelete < 0) {
+        printf("사용자 요청으로 작업을 종료합니다.\n");
+        return 0;
+    }
 
     while (1) {
         if (!readFolderPath(folderPath, sizeof(folderPath))) {
             printf("\n입력이 종료되어 작업을 중단합니다.\n");
-            return 1;
+            return 0;
         }
 
         if (equalsIgnoreCase(folderPath, "sample")) {
             printf("샘플 데이터로 데모를 실행합니다.\n");
             addSampleFiles(&head);
-            sampleMode = 1;
             break;
         }
 
@@ -226,10 +275,28 @@ int main(void) {
     }
 
     assignPersonalities(head);
-    sortFileListByInterest(head);
+    totalFiles = countFileNodes(head);
+    shuffleFileList(head);
     printFileList(head);
-    dialogueLimit = askDialogueLimit(countFileNodes(head));
-    showPopupDialoguesLimited(head, dialogueLimit);
+    dialogueLimit = askDialogueLimit(totalFiles);
+    if (dialogueLimit < 0) {
+        printf("사용자 요청으로 작업을 종료합니다.\n");
+        freeFileList(head);
+        return 0;
+    }
+
+    dialogueEnded = showPopupDialoguesLimited(head, dialogueLimit);
+    if (!dialogueEnded && askYesNo("관심도 기준 정리 추천 목록을 따로 볼까요? [y/N]: ") > 0) {
+        int recommendationLimit;
+
+        sortFileListByInterest(head);
+        recommendationLimit = askRecommendationLimit(totalFiles);
+        if (recommendationLimit < 0) {
+            printf("사용자 요청으로 추천 목록을 건너뜁니다.\n");
+        } else {
+            printCleanupRecommendations(head, recommendationLimit);
+        }
+    }
     printStatistics(head);
     printDeletePreview(head);
 
@@ -245,7 +312,6 @@ int main(void) {
         printf("실제 삭제 기능이 꺼져 있어 파일을 삭제하지 않습니다.\n");
     }
 
-    writeReport(head, "results/reports/report.txt", sampleMode ? "sample" : folderPath);
     freeFileList(head);
 
     printf("FileSoul 작업이 끝났습니다.\n");

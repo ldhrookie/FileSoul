@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #ifdef _WIN32
+#include <conio.h>
 #include <windows.h>
 #include <commctrl.h>
 #endif
@@ -25,6 +27,13 @@ static UserChoice readChoice(void) {
     if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
         printf("\n입력이 종료되었습니다. 남은 파일은 모두 무시됩니다.\n");
         return (UserChoice)5;
+    }
+
+    if (buffer[0] == 'q' || buffer[0] == 'Q') {
+        return (UserChoice)0;
+    }
+    if (strncmp(buffer, "quit", 4) == 0 || strncmp(buffer, "exit", 4) == 0) {
+        return (UserChoice)0;
     }
 
     value = strtol(buffer, &end, 10);
@@ -59,6 +68,262 @@ static void applyChoice(FileSoul* file, UserChoice choice) {
 
     file->choice = choice;
     file->deleteCandidate = choice == CHOICE_DELETE_CANDIDATE;
+}
+
+static int getRecommendationTimerSeconds(void) {
+    const char* configured = getenv("FILESOUL_RECOMMEND_TIMER_SECONDS");
+    char* end;
+    long value;
+
+    if (configured == NULL || configured[0] == '\0') {
+        return 10;
+    }
+
+    value = strtol(configured, &end, 10);
+    if (end == configured || value < 0) {
+        return 10;
+    }
+    if (value > 3600) {
+        return 3600;
+    }
+
+    return (int)value;
+}
+
+static void sleepOneSecond(void) {
+#ifdef _WIN32
+    Sleep(1000);
+#else
+    time_t start = time(NULL);
+
+    while (time(NULL) == start) {
+    }
+#endif
+}
+
+static int readTimerQuitKey(void) {
+#ifdef _WIN32
+    while (_kbhit()) {
+        int key = _getch();
+
+        if (key == 'q' || key == 'Q' || key == '0' || key == 27) {
+            return 1;
+        }
+    }
+#endif
+    return 0;
+}
+
+#ifdef _WIN32
+typedef HWND(WINAPI* CreateWindowExAFunction)(DWORD, LPCSTR, LPCSTR, DWORD, int, int, int, int, HWND, HMENU, HINSTANCE, LPVOID);
+typedef BOOL(WINAPI* DestroyWindowFunction)(HWND);
+typedef int (WINAPI* GetSystemMetricsFunction)(int);
+typedef BOOL(WINAPI* PeekMessageAFunction)(LPMSG, HWND, UINT, UINT, UINT);
+typedef LRESULT(WINAPI* DispatchMessageAFunction)(const MSG*);
+typedef BOOL(WINAPI* SetWindowPosFunction)(HWND, HWND, int, int, int, int, UINT);
+typedef BOOL(WINAPI* SetWindowTextAFunction)(HWND, LPCSTR);
+typedef BOOL(WINAPI* ShowWindowFunction)(HWND, int);
+typedef BOOL(WINAPI* TranslateMessageFunction)(const MSG*);
+typedef BOOL(WINAPI* UpdateWindowFunction)(HWND);
+
+typedef struct {
+    HMODULE user32;
+    HWND window;
+    CreateWindowExAFunction createWindowExA;
+    DestroyWindowFunction destroyWindow;
+    GetSystemMetricsFunction getSystemMetrics;
+    PeekMessageAFunction peekMessageA;
+    DispatchMessageAFunction dispatchMessageA;
+    SetWindowPosFunction setWindowPos;
+    SetWindowTextAFunction setWindowTextA;
+    ShowWindowFunction showWindow;
+    TranslateMessageFunction translateMessage;
+    UpdateWindowFunction updateWindow;
+} TimerOverlay;
+
+static FARPROC loadUser32Function(HMODULE user32, const char* name) {
+    if (user32 == NULL || name == NULL) {
+        return NULL;
+    }
+
+    return GetProcAddress(user32, name);
+}
+
+#define LOAD_USER32_FUNCTION(overlay, member, functionType, functionName) \
+    do { \
+        union { \
+            FARPROC raw; \
+            functionType typed; \
+        } loader; \
+        loader.raw = loadUser32Function((overlay)->user32, (functionName)); \
+        (overlay)->member = loader.typed; \
+    } while (0)
+
+static int initTimerOverlay(TimerOverlay* overlay) {
+    int width = 170;
+    int height = 44;
+    int margin = 18;
+    int screenWidth;
+    int x;
+    int y;
+
+    if (overlay == NULL) {
+        return 0;
+    }
+
+    memset(overlay, 0, sizeof(*overlay));
+    overlay->user32 = LoadLibraryA("user32.dll");
+    if (overlay->user32 == NULL) {
+        return 0;
+    }
+
+    LOAD_USER32_FUNCTION(overlay, createWindowExA, CreateWindowExAFunction, "CreateWindowExA");
+    LOAD_USER32_FUNCTION(overlay, destroyWindow, DestroyWindowFunction, "DestroyWindow");
+    LOAD_USER32_FUNCTION(overlay, getSystemMetrics, GetSystemMetricsFunction, "GetSystemMetrics");
+    LOAD_USER32_FUNCTION(overlay, peekMessageA, PeekMessageAFunction, "PeekMessageA");
+    LOAD_USER32_FUNCTION(overlay, dispatchMessageA, DispatchMessageAFunction, "DispatchMessageA");
+    LOAD_USER32_FUNCTION(overlay, setWindowPos, SetWindowPosFunction, "SetWindowPos");
+    LOAD_USER32_FUNCTION(overlay, setWindowTextA, SetWindowTextAFunction, "SetWindowTextA");
+    LOAD_USER32_FUNCTION(overlay, showWindow, ShowWindowFunction, "ShowWindow");
+    LOAD_USER32_FUNCTION(overlay, translateMessage, TranslateMessageFunction, "TranslateMessage");
+    LOAD_USER32_FUNCTION(overlay, updateWindow, UpdateWindowFunction, "UpdateWindow");
+
+    if (overlay->createWindowExA == NULL ||
+        overlay->destroyWindow == NULL ||
+        overlay->getSystemMetrics == NULL ||
+        overlay->peekMessageA == NULL ||
+        overlay->dispatchMessageA == NULL ||
+        overlay->setWindowPos == NULL ||
+        overlay->setWindowTextA == NULL ||
+        overlay->showWindow == NULL ||
+        overlay->translateMessage == NULL ||
+        overlay->updateWindow == NULL) {
+        FreeLibrary(overlay->user32);
+        memset(overlay, 0, sizeof(*overlay));
+        return 0;
+    }
+
+    screenWidth = overlay->getSystemMetrics(SM_CXSCREEN);
+    x = screenWidth > width + margin ? screenWidth - width - margin : margin;
+    y = margin;
+    overlay->window = overlay->createWindowExA(
+        WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
+        "STATIC",
+        "FileSoul 00:00",
+        WS_POPUP | WS_BORDER | SS_CENTER,
+        x,
+        y,
+        width,
+        height,
+        NULL,
+        NULL,
+        GetModuleHandleA(NULL),
+        NULL);
+
+    if (overlay->window == NULL) {
+        FreeLibrary(overlay->user32);
+        memset(overlay, 0, sizeof(*overlay));
+        return 0;
+    }
+
+    overlay->setWindowPos(overlay->window, HWND_TOPMOST, x, y, width, height, SWP_SHOWWINDOW);
+    overlay->showWindow(overlay->window, SW_SHOWNOACTIVATE);
+    overlay->updateWindow(overlay->window);
+    return 1;
+}
+
+static void pumpTimerOverlayMessages(TimerOverlay* overlay) {
+    MSG message;
+
+    if (overlay == NULL || overlay->window == NULL) {
+        return;
+    }
+
+    while (overlay->peekMessageA(&message, NULL, 0, 0, PM_REMOVE)) {
+        overlay->translateMessage(&message);
+        overlay->dispatchMessageA(&message);
+    }
+}
+
+static void updateTimerOverlay(TimerOverlay* overlay, int remainingSeconds) {
+    char text[64];
+
+    if (overlay == NULL || overlay->window == NULL) {
+        return;
+    }
+
+    snprintf(text, sizeof(text), "FileSoul  %02d:%02d",
+             remainingSeconds / 60,
+             remainingSeconds % 60);
+    overlay->setWindowTextA(overlay->window, text);
+    overlay->updateWindow(overlay->window);
+    pumpTimerOverlayMessages(overlay);
+}
+
+static void closeTimerOverlay(TimerOverlay* overlay) {
+    if (overlay == NULL) {
+        return;
+    }
+
+    if (overlay->window != NULL && overlay->destroyWindow != NULL) {
+        overlay->destroyWindow(overlay->window);
+        overlay->window = NULL;
+    }
+    if (overlay->user32 != NULL) {
+        FreeLibrary(overlay->user32);
+        overlay->user32 = NULL;
+    }
+}
+#endif
+
+static int waitForRecommendationTimer(int seconds) {
+    int remaining;
+#ifdef _WIN32
+    TimerOverlay overlay;
+    int overlayReady = 0;
+#endif
+
+    if (seconds <= 0) {
+        return 0;
+    }
+
+#ifdef _WIN32
+    overlayReady = initTimerOverlay(&overlay);
+#endif
+
+    for (remaining = seconds; remaining > 0; --remaining) {
+#ifdef _WIN32
+        if (overlayReady) {
+            updateTimerOverlay(&overlay, remaining);
+        }
+#endif
+        if (readTimerQuitKey()) {
+#ifdef _WIN32
+            if (overlayReady) {
+                closeTimerOverlay(&overlay);
+            }
+#endif
+            return 1;
+        }
+        sleepOneSecond();
+        if (readTimerQuitKey()) {
+#ifdef _WIN32
+            if (overlayReady) {
+                closeTimerOverlay(&overlay);
+            }
+#endif
+            return 1;
+        }
+    }
+
+#ifdef _WIN32
+    if (overlayReady) {
+        updateTimerOverlay(&overlay, 0);
+        sleepOneSecond();
+        closeTimerOverlay(&overlay);
+    }
+#endif
+    return 0;
 }
 
 #ifdef _WIN32
@@ -101,6 +366,7 @@ static UserChoice showFloatingDialogue(const FileSoul* file, const char* sizeTex
     wchar_t keepText[32];
     wchar_t deleteText[32];
     wchar_t ignoreText[32];
+    wchar_t exitText[32];
     HMODULE comctl32;
     HMODULE user32;
     typedef HRESULT(WINAPI* TaskDialogIndirectFunction)(const TASKDIALOGCONFIG*, int*, int*, BOOL*);
@@ -113,7 +379,7 @@ static UserChoice showFloatingDialogue(const FileSoul* file, const char* sizeTex
         FARPROC raw;
         MessageBoxWFunction messageBoxW;
     } messageBoxFunction;
-    TASKDIALOG_BUTTON buttons[4];
+    TASKDIALOG_BUTTON buttons[5];
     TASKDIALOGCONFIG config;
     int selectedButton = 104;
     int fallbackResult;
@@ -124,6 +390,7 @@ static UserChoice showFloatingDialogue(const FileSoul* file, const char* sizeTex
     if (terminalOnly != NULL && strcmp(terminalOnly, "1") == 0) {
         return CHOICE_NONE;
     }
+    showLlmStatus = !isLlmDialogueActive();
 
     if (showLlmStatus) {
         snprintf(message, sizeof(message),
@@ -154,12 +421,25 @@ static UserChoice showFloatingDialogue(const FileSoul* file, const char* sizeTex
     }
     snprintf(title, sizeof(title), "%.240s의 메시지", file->name);
 
+    if (showLlmStatus) {
+        char fallbackMessage[1536];
+
+        snprintf(fallbackMessage, sizeof(fallbackMessage),
+                 "LLM test/request did not pass. Local dialogue is the final fallback.\n"
+                 "Status: %.220s\n\n"
+                 "%.1200s",
+                 llmStatus != NULL ? llmStatus : "unknown",
+                 message);
+        snprintf(message, sizeof(message), "%s", fallbackMessage);
+    }
+
     if (!utf8ToWide(message, wideMessage, (int)(sizeof(wideMessage) / sizeof(wideMessage[0]))) ||
         !utf8ToWide(title, wideTitle, (int)(sizeof(wideTitle) / sizeof(wideTitle[0]))) ||
         !utf8ToWide("열기", openText, (int)(sizeof(openText) / sizeof(openText[0]))) ||
         !utf8ToWide("보관", keepText, (int)(sizeof(keepText) / sizeof(keepText[0]))) ||
         !utf8ToWide("삭제 후보", deleteText, (int)(sizeof(deleteText) / sizeof(deleteText[0]))) ||
-        !utf8ToWide("무시", ignoreText, (int)(sizeof(ignoreText) / sizeof(ignoreText[0])))) {
+        !utf8ToWide("무시", ignoreText, (int)(sizeof(ignoreText) / sizeof(ignoreText[0]))) ||
+        !utf8ToWide("종료", exitText, (int)(sizeof(exitText) / sizeof(exitText[0])))) {
         return CHOICE_IGNORE;
     }
 
@@ -171,6 +451,8 @@ static UserChoice showFloatingDialogue(const FileSoul* file, const char* sizeTex
     buttons[2].pszButtonText = deleteText;
     buttons[3].nButtonID = 104;
     buttons[3].pszButtonText = ignoreText;
+    buttons[4].nButtonID = 105;
+    buttons[4].pszButtonText = exitText;
 
     memset(&config, 0, sizeof(config));
     config.cbSize = sizeof(config);
@@ -196,6 +478,9 @@ static UserChoice showFloatingDialogue(const FileSoul* file, const char* sizeTex
             case 103:
                 return CHOICE_DELETE_CANDIDATE;
             case 104:
+                return CHOICE_IGNORE;
+            case 105:
+                return (UserChoice)0;
             default:
                 return CHOICE_IGNORE;
             }
@@ -217,7 +502,7 @@ static UserChoice showFloatingDialogue(const FileSoul* file, const char* sizeTex
             if (fallbackResult == IDNO) {
                 return CHOICE_DELETE_CANDIDATE;
             }
-            return CHOICE_IGNORE;
+            return (UserChoice)0;
         }
         FreeLibrary(user32);
     }
@@ -229,13 +514,10 @@ static UserChoice showFloatingDialogue(const FileSoul* file, const char* sizeTex
 #endif
 }
 
-void showPopupDialogues(FileNode* head) {
-    showPopupDialoguesLimited(head, countFileNodes(head));
-}
-
-void showPopupDialoguesLimited(FileNode* head, int maxFiles) {
+int showPopupDialoguesLimited(FileNode* head, int maxFiles) {
     FileNode* current = head;
     int shown = 0;
+    int timerSeconds = getRecommendationTimerSeconds();
 
     printf("\n===== FileSoul 대화 =====\n");
 
@@ -243,10 +525,24 @@ void showPopupDialoguesLimited(FileNode* head, int maxFiles) {
         maxFiles = 10;
     }
 
-    while (current != NULL && shown < maxFiles) {
+    while (current != NULL) {
         FileSoul* file = &current->data;
         UserChoice choice;
         char sizeText[64];
+
+        if (shown >= maxFiles) {
+            printf("\n모니터 위 타이머가 시작됩니다. 끝나면 새 파일 1개를 더 추천합니다.\n");
+            printf("타이머 중 종료하려면 터미널에서 q 또는 0을 누르세요.\n");
+            if (waitForRecommendationTimer(timerSeconds)) {
+                while (current != NULL) {
+                    applyChoice(&current->data, CHOICE_IGNORE);
+                    current = current->next;
+                }
+                printf("\n타이머 중 종료했습니다. 남은 파일은 모두 무시됩니다.\n");
+                return 1;
+            }
+            printf("\n타이머가 끝났습니다. 새 파일 1개를 더 추천합니다.\n");
+        }
 
         formatSize(file->size, sizeText, sizeof(sizeText));
         generateLlmDialogue(file);
@@ -259,6 +555,10 @@ void showPopupDialoguesLimited(FileNode* head, int maxFiles) {
                getFileMoodName(file->mood),
                getPersonalityName(file->personality));
         printf("크기: %s | 관심도: %.1f\n", sizeText, file->interest);
+        if (!isLlmDialogueActive()) {
+            printf("LLM test/request did not pass. Local dialogue is the final fallback.\n");
+            printf("LLM status before local dialogue: %s\n", getLlmDialogueStatus());
+        }
         printf("\"%s\"\n", file->dialogue);
         printf("대사 생성 상태: %s\n", getLlmDialogueStatus());
 
@@ -271,7 +571,7 @@ void showPopupDialoguesLimited(FileNode* head, int maxFiles) {
                 current = current->next;
             }
             printf("남은 파일을 모두 무시했습니다.\n");
-            return;
+            return 0;
         }
 
         if ((int)choice == 6) {
@@ -280,7 +580,7 @@ void showPopupDialoguesLimited(FileNode* head, int maxFiles) {
                 current = current->next;
             }
             printf("남은 파일을 모두 삭제 후보로 등록했습니다.\n");
-            return;
+            return 0;
         }
 
         if ((int)choice == 0) {
@@ -289,7 +589,7 @@ void showPopupDialoguesLimited(FileNode* head, int maxFiles) {
                 current = current->next;
             }
             printf("대화를 종료했습니다. 남은 파일은 모두 무시됩니다.\n");
-            return;
+            return 1;
         }
 
         applyChoice(file, choice);
@@ -299,12 +599,5 @@ void showPopupDialoguesLimited(FileNode* head, int maxFiles) {
         ++shown;
     }
 
-    while (current != NULL) {
-        applyChoice(&current->data, CHOICE_IGNORE);
-        current = current->next;
-    }
-
-    if (shown >= maxFiles) {
-        printf("\n대화 개수 제한에 도달했습니다. 남은 파일은 모두 무시됩니다.\n");
-    }
+    return 0;
 }
