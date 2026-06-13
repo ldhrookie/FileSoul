@@ -1,5 +1,28 @@
 ﻿# FileSoul Working Log
 
+## 2026-06-13 - Write final report to root report.txt
+
+- Intent:
+  - Make the final FileSoul result appear directly as `report.txt`.
+  - Explain the current file personality assignment behavior.
+- Important commands:
+  - `git fetch origin`
+  - `git status --short --branch`
+  - `rg -n "results/reports/report.txt|report.txt|writeReport" ...`
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+- Changes:
+  - Changed the main flow to write `report.txt` at the repository root.
+  - Changed `writeReport`'s default output from `results/reports/report.txt` to `report.txt`.
+  - Removed report-directory creation from the report writer.
+  - Updated README and architecture notes to describe the new report location.
+- Verification:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe` succeeded without warnings.
+  - Sample terminal-mode run completed without enabling real deletion.
+  - The sample run printed `보고서 저장 완료: report.txt` and `Test-Path .\report.txt` returned `True`.
+- Notes:
+  - Work was applied directly on `main` per user request.
+  - `report.txt` remains ignored as a generated runtime report.
+
 ## 2026-06-11 - Explain startup LLM HTTP 429
 
 - Intent:

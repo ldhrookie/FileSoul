@@ -271,7 +271,7 @@ int main(void) {
         printf("실제 삭제 기능이 꺼져 있어 파일을 삭제하지 않습니다.\n");
     }
 
-    writeReport(head, "results/reports/report.txt", sampleMode ? "sample" : folderPath);
+    writeReport(head, "report.txt", sampleMode ? "sample" : folderPath);
     freeFileList(head);
 
     printf("FileSoul 작업이 끝났습니다.\n");

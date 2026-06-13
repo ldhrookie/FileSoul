@@ -59,7 +59,7 @@ LLM 없이 실행하려면 `.\run_filesoul.cmd -LocalOnly`를 사용하세요.
 - 보호 파일 차단과 차단 사유 표시
 - 확장자별 통계
 - 큰 폴더 데모를 위한 대화 개수 제한
-- `results/reports/report.txt` 보고서 생성
+- `report.txt` 보고서 생성
 
 ## 삭제 안전 정책
 
@@ -80,7 +80,7 @@ LLM 없이 실행하려면 `.\run_filesoul.cmd -LocalOnly`를 사용하세요.
 ## 보고서
 
 보고서에는 스캔 요약, 삭제 결과, 확장자별 통계, 삭제 메시지, 파일별 상세 정보가 포함됩니다.
-`results/reports/report.txt`를 열 수 없으면 `report.txt`에 저장을 시도합니다.
+실행 결과 보고서는 저장소 루트의 `report.txt`에 생성됩니다.
 
 ## 한글 출력
 

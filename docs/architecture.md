@@ -16,7 +16,7 @@
 12. If real deletion is enabled, require exact `DELETE` confirmation.
 13. Delete only candidates that pass protection checks; store a detailed block reason when deletion is refused.
 14. Print updated statistics.
-15. Write `results/reports/report.txt`.
+15. Write `report.txt`.
 16. Free the linked list.
 
 ## Core Data Structures
