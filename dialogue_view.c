@@ -4,6 +4,7 @@
 #include <time.h>
 
 #ifdef _WIN32
+#include <conio.h>
 #include <windows.h>
 #include <commctrl.h>
 #endif
@@ -98,6 +99,19 @@ static void sleepOneSecond(void) {
     while (time(NULL) == start) {
     }
 #endif
+}
+
+static int readTimerQuitKey(void) {
+#ifdef _WIN32
+    while (_kbhit()) {
+        int key = _getch();
+
+        if (key == 'q' || key == 'Q' || key == '0' || key == 27) {
+            return 1;
+        }
+    }
+#endif
+    return 0;
 }
 
 #ifdef _WIN32
@@ -262,7 +276,7 @@ static void closeTimerOverlay(TimerOverlay* overlay) {
 }
 #endif
 
-static void waitForRecommendationTimer(int seconds) {
+static int waitForRecommendationTimer(int seconds) {
     int remaining;
 #ifdef _WIN32
     TimerOverlay overlay;
@@ -270,7 +284,7 @@ static void waitForRecommendationTimer(int seconds) {
 #endif
 
     if (seconds <= 0) {
-        return;
+        return 0;
     }
 
 #ifdef _WIN32
@@ -283,7 +297,23 @@ static void waitForRecommendationTimer(int seconds) {
             updateTimerOverlay(&overlay, remaining);
         }
 #endif
+        if (readTimerQuitKey()) {
+#ifdef _WIN32
+            if (overlayReady) {
+                closeTimerOverlay(&overlay);
+            }
+#endif
+            return 1;
+        }
         sleepOneSecond();
+        if (readTimerQuitKey()) {
+#ifdef _WIN32
+            if (overlayReady) {
+                closeTimerOverlay(&overlay);
+            }
+#endif
+            return 1;
+        }
     }
 
 #ifdef _WIN32
@@ -293,6 +323,7 @@ static void waitForRecommendationTimer(int seconds) {
         closeTimerOverlay(&overlay);
     }
 #endif
+    return 0;
 }
 
 #ifdef _WIN32
@@ -501,7 +532,15 @@ int showPopupDialoguesLimited(FileNode* head, int maxFiles) {
 
         if (shown >= maxFiles) {
             printf("\n모니터 위 타이머가 시작됩니다. 끝나면 새 파일 1개를 더 추천합니다.\n");
-            waitForRecommendationTimer(timerSeconds);
+            printf("타이머 중 종료하려면 터미널에서 q 또는 0을 누르세요.\n");
+            if (waitForRecommendationTimer(timerSeconds)) {
+                while (current != NULL) {
+                    applyChoice(&current->data, CHOICE_IGNORE);
+                    current = current->next;
+                }
+                printf("\n타이머 중 종료했습니다. 남은 파일은 모두 무시됩니다.\n");
+                return 1;
+            }
             printf("\n타이머가 끝났습니다. 새 파일 1개를 더 추천합니다.\n");
         }
 

@@ -145,7 +145,12 @@ try {
             throw "Cannot rebuild while filesoul.exe is running."
         }
         else {
-            & gcc -Wall -Wextra "*.c" -o "filesoul.exe"
+            $sourceFiles = @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter "*.c" -File |
+                ForEach-Object { $_.Name })
+
+            Write-Host "Building FileSoul from: $PSScriptRoot"
+            Write-Host "Compiling $($sourceFiles.Count) C source files."
+            & gcc -Wall -Wextra @sourceFiles -o "filesoul.exe"
             if ($LASTEXITCODE -ne 0) {
                 throw "FileSoul build failed. Close FileSoul if it is running, then try again."
             }

@@ -1,5 +1,26 @@
 ﻿# FileSoul Working Log
 
+## 2026-06-13 - Allow quitting during recommendation timer
+
+- Intent:
+  - Keep popup mode active while allowing terminal input to stop the wait timer.
+  - Make sure launcher rebuilds include `dialogue_view.c`.
+- Important commands:
+  - `rg -n "waitForRecommendationTimer|sleepOneSecond|shown >= maxFiles|timer" dialogue_view.c run_filesoul.ps1`
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+  - `run_filesoul.cmd -LocalOnly -Terminal` sample run
+- Changes:
+  - Added nonblocking Windows key checks during the recommendation timer.
+  - During timer wait, `q`, `0`, or Esc exits the dialogue and ignores remaining files.
+  - Added a terminal instruction before timer wait.
+  - Changed the launcher build step to enumerate root `.c` files and pass them explicitly to `gcc`.
+- Verification:
+  - Warning build succeeded.
+  - Launcher printed `Compiling 11 C source files`, confirming it rebuilt from current root C files.
+  - Terminal-mode smoke run still exited cleanly with `q`.
+- Notes:
+  - Timer key detection depends on real console keyboard input; piped input cannot fully simulate the popup-mode timer interaction.
+
 ## 2026-06-13 - Add clean quit flow
 
 - Intent:
