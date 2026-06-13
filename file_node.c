@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "file_node.h"
 #include "console_io.h"
@@ -145,6 +146,45 @@ void sortFileListByInterest(FileNode* head) {
             current = current->next;
         }
     } while (swapped);
+}
+
+void shuffleFileList(FileNode* head) {
+    int count;
+    int i;
+    FileSoul* items;
+    FileNode* current;
+
+    count = countFileNodes(head);
+    if (count <= 1) {
+        return;
+    }
+
+    items = (FileSoul*)malloc(sizeof(FileSoul) * (size_t)count);
+    if (items == NULL) {
+        printf("추천 순서를 섞기 위한 메모리를 확보하지 못했습니다. 기존 순서를 사용합니다.\n");
+        return;
+    }
+
+    current = head;
+    for (i = 0; i < count && current != NULL; ++i) {
+        items[i] = current->data;
+        current = current->next;
+    }
+
+    for (i = count - 1; i > 0; --i) {
+        int target = rand() % (i + 1);
+        FileSoul temp = items[i];
+        items[i] = items[target];
+        items[target] = temp;
+    }
+
+    current = head;
+    for (i = 0; i < count && current != NULL; ++i) {
+        current->data = items[i];
+        current = current->next;
+    }
+
+    free(items);
 }
 
 int countFileNodes(const FileNode* head) {

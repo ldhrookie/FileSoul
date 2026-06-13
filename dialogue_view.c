@@ -469,10 +469,6 @@ static UserChoice showFloatingDialogue(const FileSoul* file, const char* sizeTex
 #endif
 }
 
-void showPopupDialogues(FileNode* head) {
-    showPopupDialoguesLimited(head, countFileNodes(head));
-}
-
 void showPopupDialoguesLimited(FileNode* head, int maxFiles) {
     FileNode* current = head;
     int shown = 0;

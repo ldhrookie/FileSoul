@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -15,6 +16,7 @@
 #include "report.h"
 #include "scanner.h"
 #include "stats.h"
+#include "string_utils.h"
 
 static void trimNewline(char* text) {
     size_t length;
@@ -37,27 +39,6 @@ static void addSampleFiles(FileNode** head) {
     appendFileNode(head, createSampleFileNode("game.exe", "exe", 7300000));
 }
 
-static int equalsIgnoreCase(const char* left, const char* right) {
-    while (left != NULL && right != NULL && *left != '\0' && *right != '\0') {
-        char a = *left;
-        char b = *right;
-
-        if (a >= 'A' && a <= 'Z') {
-            a = (char)(a - 'A' + 'a');
-        }
-        if (b >= 'A' && b <= 'Z') {
-            b = (char)(b - 'A' + 'a');
-        }
-        if (a != b) {
-            return 0;
-        }
-        ++left;
-        ++right;
-    }
-
-    return left != NULL && right != NULL && *left == '\0' && *right == '\0';
-}
-
 static int askYesNo(const char* prompt) {
     char buffer[32];
 
@@ -77,6 +58,32 @@ static int askDialogueLimit(int totalFiles) {
     printf("처음 바로 추천할 파일 개수입니다. 남은 파일은 타이머가 끝날 때마다 1개씩 추가 추천됩니다.\n");
 
     printf("대화할 파일 개수를 입력하세요. 빈 입력은 10개입니다: ");
+    if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
+        return totalFiles < 10 ? totalFiles : 10;
+    }
+
+    if (buffer[0] == '\n' || buffer[0] == '\0') {
+        return totalFiles < 10 ? totalFiles : 10;
+    }
+
+    value = strtol(buffer, &end, 10);
+    if (end == buffer || value <= 0) {
+        value = 10;
+    }
+
+    if (value > totalFiles) {
+        value = totalFiles;
+    }
+
+    return (int)value;
+}
+
+static int askRecommendationLimit(int totalFiles) {
+    char buffer[32];
+    long value;
+    char* end;
+
+    printf("정리 추천 목록에서 볼 파일 개수를 입력하세요. 빈 입력은 10개입니다: ");
     if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
         return totalFiles < 10 ? totalFiles : 10;
     }
@@ -199,12 +206,14 @@ int main(void) {
     int sampleMode = 0;
     int allowRealDelete;
     int dialogueLimit;
+    int totalFiles;
 
     setlocale(LC_ALL, "");
 #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
 #endif
+    srand((unsigned int)time(NULL));
 
     printf("FileSoul - 파일들의 목소리\n");
     printf("주의: 실제 삭제는 기본적으로 꺼져 있으며, DELETE 확인 후에만 실행됩니다.\n");
@@ -235,10 +244,18 @@ int main(void) {
     }
 
     assignPersonalities(head);
-    sortFileListByInterest(head);
+    totalFiles = countFileNodes(head);
+    shuffleFileList(head);
     printFileList(head);
-    dialogueLimit = askDialogueLimit(countFileNodes(head));
+    dialogueLimit = askDialogueLimit(totalFiles);
     showPopupDialoguesLimited(head, dialogueLimit);
+    if (askYesNo("관심도 기준 정리 추천 목록을 따로 볼까요? [y/N]: ")) {
+        int recommendationLimit;
+
+        sortFileListByInterest(head);
+        recommendationLimit = askRecommendationLimit(totalFiles);
+        printCleanupRecommendations(head, recommendationLimit);
+    }
     printStatistics(head);
     printDeletePreview(head);
 

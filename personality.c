@@ -1,25 +1,9 @@
-#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 
 #include "personality.h"
-
-static int extensionEquals(const char* left, const char* right) {
-    if (left == NULL || right == NULL) {
-        return 0;
-    }
-
-    while (*left != '\0' && *right != '\0') {
-        if (tolower((unsigned char)*left) != tolower((unsigned char)*right)) {
-            return 0;
-        }
-        ++left;
-        ++right;
-    }
-
-    return *left == '\0' && *right == '\0';
-}
+#include "string_utils.h"
 
 static int daysSince(time_t value) {
     time_t now;
@@ -80,35 +64,35 @@ FileType getFileType(const char* extension) {
         return TYPE_UNKNOWN;
     }
 
-    if (extensionEquals(extension, "txt")) {
+    if (equalsIgnoreCase(extension, "txt")) {
         return TYPE_TEXT;
     }
 
-    if (extensionEquals(extension, "png") || extensionEquals(extension, "jpg") ||
-        extensionEquals(extension, "jpeg") || extensionEquals(extension, "gif") ||
-        extensionEquals(extension, "bmp")) {
+    if (equalsIgnoreCase(extension, "png") || equalsIgnoreCase(extension, "jpg") ||
+        equalsIgnoreCase(extension, "jpeg") || equalsIgnoreCase(extension, "gif") ||
+        equalsIgnoreCase(extension, "bmp")) {
         return TYPE_IMAGE;
     }
 
-    if (extensionEquals(extension, "c") || extensionEquals(extension, "h") ||
-        extensionEquals(extension, "cpp") || extensionEquals(extension, "py") ||
-        extensionEquals(extension, "java") || extensionEquals(extension, "js")) {
+    if (equalsIgnoreCase(extension, "c") || equalsIgnoreCase(extension, "h") ||
+        equalsIgnoreCase(extension, "cpp") || equalsIgnoreCase(extension, "py") ||
+        equalsIgnoreCase(extension, "java") || equalsIgnoreCase(extension, "js")) {
         return TYPE_CODE;
     }
 
-    if (extensionEquals(extension, "docx") || extensionEquals(extension, "pdf") ||
-        extensionEquals(extension, "pptx") || extensionEquals(extension, "hwp")) {
+    if (equalsIgnoreCase(extension, "docx") || equalsIgnoreCase(extension, "pdf") ||
+        equalsIgnoreCase(extension, "pptx") || equalsIgnoreCase(extension, "hwp")) {
         return TYPE_DOCUMENT;
     }
 
-    if (extensionEquals(extension, "exe") || extensionEquals(extension, "dll") ||
-        extensionEquals(extension, "bat") || extensionEquals(extension, "cmd")) {
+    if (equalsIgnoreCase(extension, "exe") || equalsIgnoreCase(extension, "dll") ||
+        equalsIgnoreCase(extension, "bat") || equalsIgnoreCase(extension, "cmd")) {
         return TYPE_EXECUTABLE;
     }
 
-    if (extensionEquals(extension, "zip") || extensionEquals(extension, "rar") ||
-        extensionEquals(extension, "7z") || extensionEquals(extension, "tar") ||
-        extensionEquals(extension, "gz")) {
+    if (equalsIgnoreCase(extension, "zip") || equalsIgnoreCase(extension, "rar") ||
+        equalsIgnoreCase(extension, "7z") || equalsIgnoreCase(extension, "tar") ||
+        equalsIgnoreCase(extension, "gz")) {
         return TYPE_ARCHIVE;
     }
 
@@ -117,14 +101,16 @@ FileType getFileType(const char* extension) {
 
 FileMood getFileMood(const FileSoul* file) {
     int days;
+    unsigned int seed;
 
     if (file == NULL) {
         return MOOD_UNKNOWN;
     }
 
     days = daysSince(file->modifiedTime);
+    seed = dialogueSeed(file);
 
-    if (file->interest >= 75.0) {
+    if (file->type == TYPE_EXECUTABLE || file->type == TYPE_UNKNOWN) {
         return MOOD_URGENT;
     }
 
@@ -132,8 +118,42 @@ FileMood getFileMood(const FileSoul* file) {
         return MOOD_HEAVY;
     }
 
+    if (file->interest >= 85.0) {
+        return MOOD_URGENT;
+    }
+
+    if (days >= 365) {
+        switch (seed % 4U) {
+        case 0:
+            return MOOD_LONELY;
+        case 1:
+            return MOOD_CURIOUS;
+        case 2:
+            return MOOD_HEAVY;
+        default:
+            return MOOD_CALM;
+        }
+    }
+
     if (days >= 180) {
-        return MOOD_LONELY;
+        switch (seed % 4U) {
+        case 0:
+            return MOOD_LONELY;
+        case 1:
+            return MOOD_CURIOUS;
+        case 2:
+            return MOOD_LIVELY;
+        default:
+            return MOOD_CALM;
+        }
+    }
+
+    if (file->type == TYPE_IMAGE || file->type == TYPE_ARCHIVE) {
+        return (seed % 3U) == 0U ? MOOD_LIVELY : MOOD_CURIOUS;
+    }
+
+    if (file->interest >= 65.0) {
+        return MOOD_URGENT;
     }
 
     return MOOD_CALM;
@@ -419,6 +439,10 @@ const char* getFileMoodName(FileMood mood) {
         return "무거움";
     case MOOD_URGENT:
         return "급함";
+    case MOOD_CURIOUS:
+        return "궁금함";
+    case MOOD_LIVELY:
+        return "활기참";
     case MOOD_UNKNOWN:
     default:
         return "알 수 없음";

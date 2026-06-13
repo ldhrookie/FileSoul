@@ -532,3 +532,59 @@
   - `gcc -Wall -Wextra *.c -o filesoul.exe` succeeded without warnings.
 - Notes:
   - `filesoul.exe` remains a local ignored build artifact.
+
+## 2026-06-12 - Review duplicate or unnecessary feature surface
+
+- Intent:
+  - Identify features or files that may be unnecessary, duplicated, or confusing in the current `main` branch.
+- Important commands:
+  - `rg --files`
+  - `rg -n "showPopupDialogues|generateLlmDialogue|shouldSkipFile|isProtectedFile" ...`
+  - `git ls-files src filesoul_new_check.exe llm_debug_response.json filesoul.exe results`
+- Changes:
+  - No code changes were made.
+- Verification:
+  - Confirmed active build remains root-level C files.
+  - Confirmed `src/` is tracked but not part of the active build.
+  - Confirmed local executables and LLM debug response are ignored artifacts, not tracked files.
+- Notes:
+  - Cleanup candidates are `src/` preparation code, unused `showPopupDialogues` wrapper, duplicated case-insensitive helpers, and overlapping scan/delete protection lists.
+
+## 2026-06-12 - Trim small duplicates and diversify file moods
+
+- Intent:
+  - Remove low-risk duplicate code and make recommendations feel less dominated by lonely files.
+- Important commands:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+  - Sample terminal-mode smoke run with `FILESOUL_TERMINAL_DIALOGUE=1`
+- Changes:
+  - Added `string_utils.c/h` for shared case-insensitive string comparison.
+  - Removed duplicate `equalsIgnoreCase` implementations from `main.c`, `scanner.c`, `delete_actions.c`, and type detection in `personality.c`.
+  - Removed the unused `showPopupDialogues` wrapper and kept `showPopupDialoguesLimited` as the active dialogue entry point.
+  - Added `MOOD_CURIOUS` and `MOOD_LIVELY`.
+  - Changed mood selection so old files are distributed across lonely, curious, heavy, and calm instead of always becoming lonely.
+  - Gave images and archives more curious/lively moods when they are not urgent or heavy.
+- Verification:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe` succeeded without warnings.
+  - Sample run showed mixed moods: urgent, lively, and calm.
+- Notes:
+  - The tracked `src/` preparation folder was left in place because repository guidance says it is a future cleanup area, not part of the active build.
+
+## 2026-06-12 - Randomize main recommendations and separate cleanup suggestions
+
+- Intent:
+  - Make FileSoul introduce random files first instead of always leading with files that look most cleanup-worthy.
+  - Keep cleanup recommendations optional and separate from the main dialogue flow.
+- Important commands:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+  - Sample terminal-mode smoke run with optional cleanup suggestions enabled
+- Changes:
+  - Added `shuffleFileList` to randomize the main file dialogue order after personality assignment.
+  - Changed `main.c` to shuffle before printing and dialogue instead of sorting by interest first.
+  - Added an optional prompt for viewing cleanup recommendations after the random dialogue flow.
+  - Added `printCleanupRecommendations`, which shows interest-ranked suggestions without automatically marking delete candidates.
+- Verification:
+  - `gcc -Wall -Wextra *.c -o filesoul.exe` succeeded without warnings.
+  - Sample run showed a lower-interest file first in the main dialogue and then displayed an optional interest-ranked cleanup list.
+- Notes:
+  - Guarded deletion behavior is unchanged; files are still deleted only after explicit delete-candidate selection, preview, and `DELETE` confirmation.
