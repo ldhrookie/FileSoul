@@ -13,7 +13,6 @@
 #include "dialogue_view.h"
 #include "file_node.h"
 #include "personality.h"
-#include "report.h"
 #include "scanner.h"
 #include "stats.h"
 #include "string_utils.h"
@@ -203,7 +202,6 @@ int main(void) {
     char folderPath[MAX_PATH_LENGTH];
     FileNode* head = NULL;
     int scannedCount;
-    int sampleMode = 0;
     int allowRealDelete;
     int dialogueLimit;
     int totalFiles;
@@ -230,7 +228,6 @@ int main(void) {
         if (equalsIgnoreCase(folderPath, "sample")) {
             printf("샘플 데이터로 데모를 실행합니다.\n");
             addSampleFiles(&head);
-            sampleMode = 1;
             break;
         }
 
@@ -271,7 +268,6 @@ int main(void) {
         printf("실제 삭제 기능이 꺼져 있어 파일을 삭제하지 않습니다.\n");
     }
 
-    writeReport(head, "report.txt", sampleMode ? "sample" : folderPath);
     freeFileList(head);
 
     printf("FileSoul 작업이 끝났습니다.\n");

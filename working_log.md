@@ -1,5 +1,25 @@
 ﻿# FileSoul Working Log
 
+## 2026-06-13 - Stop generating report.txt
+
+- Intent:
+  - Remove `report.txt` from the normal FileSoul completion flow.
+  - Keep final results in terminal output only.
+- Important commands:
+  - `rg -n "writeReport|report.txt|보고서|Report|reports" main.c report.c report.h README.md docs working_log.md .gitignore`
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+  - `run_filesoul.cmd -LocalOnly -Terminal` sample run
+- Changes:
+  - Removed the `writeReport(...)` call from `main.c`.
+  - Removed the now-unused `report.h` include from `main.c`.
+  - Removed current README and architecture instructions that said `report.txt` is generated.
+- Verification:
+  - Warning build succeeded.
+  - Sample launcher run completed without printing `보고서 저장 완료`.
+  - `Test-Path .\report.txt` returned `False`.
+- Notes:
+  - The unused report module files are still present, but the app no longer calls them in the active flow.
+
 ## 2026-06-13 - Add terminal launcher option without removing popups
 
 - Intent:
