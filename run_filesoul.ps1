@@ -1,7 +1,7 @@
 param(
     [switch]$SkipBuild,
     [switch]$LocalOnly,
-    [switch]$Popup,
+    [switch]$Terminal,
     [string]$Model
 )
 
@@ -101,9 +101,9 @@ try {
         $env:FILESOUL_LLM_MODEL = $Model
     }
 
-    if (-not $Popup) {
+    if ($Terminal) {
         $env:FILESOUL_TERMINAL_DIALOGUE = "1"
-        Write-Host "Terminal choice mode is enabled. Use -Popup to show Windows popups."
+        Write-Host "Terminal choice mode is enabled."
     }
 
     if (-not $LocalOnly -and -not $env:GROQ_API_KEY) {
