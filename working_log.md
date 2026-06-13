@@ -1,5 +1,24 @@
 ﻿# FileSoul Working Log
 
+## 2026-06-13 - Make mood labels feel emotional
+
+- Intent:
+  - Replace status-like mood labels with more realistic emotional labels.
+  - Keep the existing file personality and safety behavior unchanged.
+- Important commands:
+  - `git fetch origin`
+  - `git status --short --branch`
+  - `rg -n "MOOD_|getFileMood|급함|외로움|궁금함|활기참|평온함|무거움" ...`
+  - `gcc -Wall -Wextra *.c -o filesoul.exe`
+- Changes:
+  - Changed visible mood names from `평온함`, `외로움`, `무거움`, `급함`, `궁금함`, `활기참` to `편안함`, `쓸쓸함`, `버거움`, `불안함`, `궁금함`, `들뜸`.
+  - Left the internal mood enum and guarded deletion behavior unchanged.
+- Verification:
+  - Warning build succeeded.
+  - Sample terminal-mode run showed `불안함`, `편안함`, and `궁금함` in place of the older status-like labels.
+- Notes:
+  - `MOOD_URGENT` still exists internally, but it is now presented to users as `불안함`.
+
 ## 2026-06-13 - Write final report to root report.txt
 
 - Intent:

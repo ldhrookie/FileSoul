@@ -432,17 +432,17 @@ const char* getPersonalityName(Personality personality) {
 const char* getFileMoodName(FileMood mood) {
     switch (mood) {
     case MOOD_CALM:
-        return "평온함";
+        return "편안함";
     case MOOD_LONELY:
-        return "외로움";
+        return "쓸쓸함";
     case MOOD_HEAVY:
-        return "무거움";
+        return "버거움";
     case MOOD_URGENT:
-        return "급함";
+        return "불안함";
     case MOOD_CURIOUS:
         return "궁금함";
     case MOOD_LIVELY:
-        return "활기참";
+        return "들뜸";
     case MOOD_UNKNOWN:
     default:
         return "알 수 없음";
